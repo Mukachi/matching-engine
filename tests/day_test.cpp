@@ -4,9 +4,10 @@
 // test, outside the books), each Order Executed, Executed With Price and
 // Order Cancel a reduction of the named order, each Order Delete a whole
 // cancel, each Order Replace a replace. After every event the same answers and
-// every level touched the same in full; at the end every book in full, and
-// each equal to the feed handler's reference book fed the same day (its levels,
-// and its queues with reference numbers mapped to IDs).
+// every level touched the same in full; every 50 million messages and at the
+// end every book in full, and equal to the feed handler's reference book fed
+// the same day (its levels, and its queues with reference numbers mapped to
+// IDs).
 // Usage: day_test [day file] [messages] (default the whole day)
 // Design: docs/design/002-book.md
 #include "check.hpp"
@@ -19,6 +20,7 @@
 #include <itchfh/event.hpp>
 #include <itchfh/reference_book.hpp>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -43,12 +45,14 @@ struct books {
     market<levels_sorted, table_hash> ab{day()};
     market<levels_map, table_direct> ba{day()};
     market<levels_map, table_hash> bb{day()};
+    market<levels_sorted, table_low> ac{day()};
+    market<levels_map, table_low> bc{day()};
     reference_market ref{day()};
 };
 
 template <class F>
 bool all(books& b, F&& f) {
-    return f(b.aa) && f(b.ab) && f(b.ba) && f(b.bb);
+    return f(b.aa) && f(b.ab) && f(b.ba) && f(b.bb) && f(b.ac) && f(b.bc);
 }
 bool same(const answer& a, const answer& b) { return a.why == b.why && a.id == b.id; }
 
@@ -67,6 +71,40 @@ int main(int argc, char** argv) {
     std::unordered_map<std::uint64_t, order_id> id_of;  // ITCH reference number to the engine's ID
     std::uint64_t events = 0, refused[refusals] = {}, skipped = 0, disagree = 0;
     std::uint64_t first_disagreement = 0;
+    // Every book in full, ours against the reference, and the reference against
+    // the feed handler's (reference numbers mapped to IDs): every 50 million
+    // messages and at the end (by the close the books are empty, so the
+    // checkpoints are what compares full books, the peak among them).
+    bool full = true, vs_theirs = true;
+    std::size_t compared = 0, unmatched = 0, checkpoints = 0, most_live = 0;
+    const auto compare_all = [&] {
+        ++checkpoints;
+        most_live = std::max(most_live, b.ref.live_orders());
+        for (const std::uint16_t loc : theirs.instruments()) {
+            ++compared;
+            for (const side sd : {side::buy, side::sell}) {
+                const auto r = b.ref.state(loc, sd);
+                full = full && all(b, [&](auto& x) { return x.state(loc, sd) == r; });
+                const auto ts = sd == side::buy ? itchfh::side::bid : itchfh::side::ask;
+                const auto lv = theirs.levels(loc, ts);
+                bool same_book = lv.size() == r.size();
+                for (std::size_t j = 0; same_book && j < lv.size(); ++j) {
+                    same_book = lv[j].price == r[j].price && lv[j].shares == r[j].shares && lv[j].orders == r[j].count;
+                    const auto q = theirs.queue(loc, ts, lv[j].price);
+                    for (std::size_t k = 0; same_book && k < q.size(); ++k) {
+                        const auto it = id_of.find(q[k]);
+                        same_book = it != id_of.end() && it->second == r[j].queue[k].id;
+                    }
+                }
+                if (!same_book) {
+                    vs_theirs = false;
+                    ++unmatched;
+                }
+            }
+        }
+        full = full && all(b, [&](auto& x) { return x.live_orders() == b.ref.live_orders(); });
+        vs_theirs = vs_theirs && b.ref.live_orders() == theirs.live_orders();
+    };
     itchfh::message m;
     while (f.sequence() < limit && f.next(m)) {
         itchfh::event e{};
@@ -154,6 +192,7 @@ int main(int argc, char** argv) {
                 continue;
         }
         theirs.apply(e);
+        if (f.sequence() % 50'000'000 == 0) compare_all();
         if (m.type == 'H') continue;
         ++events;
         if (!want.ok()) ++refused[static_cast<int>(want.why)];
@@ -171,39 +210,13 @@ int main(int argc, char** argv) {
         if (refused[r]) why += std::string(" ") + to_string(static_cast<refusal>(r)) + " " + std::to_string(refused[r]);
     std::printf("      refused:%s; events for an order not entered (refused before, or unknown): %llu\n", why.empty() ? " none" : why.c_str(),
                 static_cast<unsigned long long>(skipped));
+    compare_all();
+    check(full, "S4: every book in full equal to the reference at " + std::to_string(checkpoints) +
+                    " checkpoints (every 50 million messages and the end; up to " + std::to_string(most_live) +
+                    " orders live; " + std::to_string(compared) + " instrument books compared)");
+    check(vs_theirs, "S4: at the same checkpoints the reference equal to the feed handler's reference book: every level and every queue, in order" +
+                         (unmatched ? " (" + std::to_string(unmatched) + " sides differ)" : std::string()));
 
-    // The end: every book in full, ours against the reference, and the
-    // reference against the feed handler's (reference numbers mapped to IDs).
-    bool full = true, vs_theirs = true;
-    std::size_t instruments = 0, unmatched = 0;
-    for (const std::uint16_t loc : theirs.instruments()) {
-        ++instruments;
-        for (const side sd : {side::buy, side::sell}) {
-            const auto r = b.ref.state(loc, sd);
-            full = full && all(b, [&](auto& x) { return x.state(loc, sd) == r; });
-            const auto ts = sd == side::buy ? itchfh::side::bid : itchfh::side::ask;
-            const auto lv = theirs.levels(loc, ts);
-            bool same_book = lv.size() == r.size();
-            for (std::size_t j = 0; same_book && j < lv.size(); ++j) {
-                same_book = lv[j].price == r[j].price && lv[j].shares == r[j].shares && lv[j].orders == r[j].count;
-                const auto q = theirs.queue(loc, ts, lv[j].price);
-                for (std::size_t k = 0; same_book && k < q.size(); ++k) {
-                    const auto it = id_of.find(q[k]);
-                    same_book = it != id_of.end() && it->second == r[j].queue[k].id;
-                }
-            }
-            if (!same_book) {
-                vs_theirs = false;
-                ++unmatched;
-            }
-        }
-    }
-    check(full && all(b, [&](auto& x) { return x.live_orders() == b.ref.live_orders(); }),
-          "S4: at the end every book in full equal to the reference (" + std::to_string(instruments) + " instruments, " +
-              std::to_string(b.ref.live_orders()) + " orders live)");
-    check(vs_theirs && b.ref.live_orders() == theirs.live_orders(),
-          "S4: at the end the reference equal to the feed handler's reference book: every level and every queue, in order" +
-              (unmatched ? " (" + std::to_string(unmatched) + " sides differ)" : std::string()));
     std::printf("      peak: %zu orders live, %zu levels (levels A, table A)\n", b.aa.peak_orders(), b.aa.peak_levels());
     return me::test::result();
 }

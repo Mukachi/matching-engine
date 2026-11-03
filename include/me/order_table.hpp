@@ -1,4 +1,4 @@
-// From an order's ID to its record in the market's pool (note 002, D1), two
+// From an order's ID to its record in the market's pool (note 002, D1), three
 // ways:
 //   A  a direct array indexed by ID: the engine's IDs are dense by
 //      construction, so no hashing and no probe; it grows with every order
@@ -6,6 +6,9 @@
 //   B  open addressing over a fixed table sized for the orders live at once
 //      (twice them, as a power of two), linear probing, deletion by backward
 //      shift (no tombstones): memory bounded by live orders
+//   C  as B, the home slot the ID's low bits instead of a hash: the engine's
+//      IDs come in sequence, so consecutive orders sit together, as in A,
+//      with B's bound on memory (Shep's decision A, note 002's Review)
 // Design: docs/design/002-book.md
 #pragma once
 
@@ -30,9 +33,10 @@ private:
     table<std::uint32_t> slot_;  // record + 1; 0 is none (and 0 - 1 is npos)
 };
 
-struct table_hash {
-    static constexpr const char* name = "B: open addressing";
-    explicit table_hash(const config& c)
+template <bool Hashed>
+struct table_open {
+    static constexpr const char* name = Hashed ? "B: open addressing" : "C: open addressing, low bits";
+    explicit table_open(const config& c)
         : mask_(pow2_at_least(2 * c.orders) - 1), shift_(64 - std::countr_zero(mask_ + 1)), e_(zeroed<entry>(mask_ + 1, c.prefault)) {}
     bool can_take(order_id id) const { return id >= 1; }
     void put(order_id id, std::uint32_t slot) {
@@ -67,10 +71,16 @@ private:
         order_id id;  // 0 is empty
         std::uint32_t slot;
     };
-    std::size_t home(order_id id) const { return static_cast<std::size_t>((id * 0x9E3779B97F4A7C15ull) >> shift_); }
+    std::size_t home(order_id id) const {
+        if constexpr (Hashed) return static_cast<std::size_t>((id * 0x9E3779B97F4A7C15ull) >> shift_);
+        else return static_cast<std::size_t>(id) & mask_;
+    }
     std::size_t mask_;
     int shift_;
     table<entry> e_;
 };
+
+using table_hash = table_open<true>;
+using table_low = table_open<false>;
 
 }  // namespace me

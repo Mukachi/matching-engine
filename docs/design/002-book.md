@@ -62,7 +62,10 @@ flowchart LR
     configured capacity and refuses past it;
   - *B.* open addressing over a fixed table sized for the orders live at once, allocated and
     pre-faulted at start: memory bounded by live orders, a hash and a probe an operation.
-  *Proposed:* both built and measured; the default chosen from the figures.
+  - *C* (added by Shep's decision, Review 2026-11-03): as B, the home slot the ID's low bits
+    (`id & mask`) instead of a hash: the IDs come in sequence, so consecutive orders sit
+    together, as in A, with B's bound on memory.
+  *Proposed:* all built and measured; the default chosen from the figures.
 - **D2. The price levels.** Two forms, measured:
   - *A.* a sorted array per side, best at the end, as the feed handler's default (most changes
     are near the best, so inserts and removals move few entries);
@@ -122,7 +125,8 @@ orders live (the feed handler's note 002: the lookup, not the levels, is what ev
   has a test, and the book is unchanged after it.
 - S2. Random streams of operations (fixed seeds, at least 10 million operations over books of
   thousands of levels): the fast books in every combination of D1 and D2 and the reference agree
-  after every operation (the same answers, the same levels, the same queues).
+  after every operation (the same answers, the order, every level touched in full; every book in
+  full every 100,000 operations and at the end: amended in building, Review).
 - S3. Add, cancel and replace make no allocation and no system call (the compiled call graph
   checked, as the repos before it).
 - S4. The sample day's displayed book events applied to each book: every book equal to the
@@ -134,11 +138,12 @@ orders live (the feed handler's note 002: the lookup, not the levels, is what ev
 
 ## Tasks
 
-- [ ] Order record, pool, intrusive queue; the levels (D2 A, B); the order table (D1 A, B)
-- [ ] The book: add, cancel part and whole, replace, refusals (D6)
-- [ ] The reference book
-- [ ] Tests: the rules (S1), random streams (S2), the call graph (S3), the day (S4)
-- [ ] Benchmarks and `run.py` (S5); Shep's runs; review
+- [x] Order record, pool, intrusive queue; the levels (D2 A, B); the order table (D1 A, B)
+- [x] The book: add, cancel part and whole, replace, refusals (D6)
+- [x] The reference book
+- [x] Tests: the rules (S1), random streams (S2), the call graph (S3), the day (S4)
+- [x] Benchmarks and `run.py` (S5)
+- [ ] Shep's runs; review
 
 ## Review
 
@@ -146,3 +151,5 @@ orders live (the feed handler's note 002: the lookup, not the levels, is what ev
 |---|---|---|
 | 2026-11-03 | Draft | Written from note 001 (D2, D4) and the feed handler's note 002 (its structures and the sample day's peaks). Found: the engine assigns its own IDs in sequence, so a direct array by ID is dense by construction (the feed handler's had 45% of its range used); its cost is memory growing with every order entered, against open addressing's bound on live orders (D1). A first version of D5 refused locking or crossing adds; dropped before review: the day's book was crossed in halts, and keeping the book uncrossed is the engine's (note 003) |
 | 2026-11-03 | Agreed | Shep asked whether the standard design could be improved: five alternatives recorded above for later (huge pages, a 32-byte hot record, a contiguous queue, a price-indexed level array with a bitmap, prefetching), not built here. Approved by Shep, every decision as proposed (option A each): D1 and D2 each in two forms, measured; D3 one pool and an intrusive queue; D4 capacity from configuration; D5 the book does not check crossing; D6 refusals answered and counted; D7 synthetic streams and the day's book events |
+| 2026-11-03 | Agreed (building) | Built: `market.hpp` (the books over shared pools: one record pool, one level pool, one order table; a replace reuses its record, unlinked and relinked, so it needs no second record and a refusal changes nothing), `levels.hpp` (A: sorted arrays in one arena shared by every book, chunks doubling 8 to 16,384, as the feed handler's; B: `std::map` over a fixed node pool), `order_table.hpp` (A: direct array; B: open addressing, linear probing, backward-shift deletion), `reference_market.hpp`. Tests: `book_test` (S1, 147 checks over the four combinations and the reference), `random_test` (S2: 10 million operations over two seeds, sides to ~3,200 levels; after every operation the answer, the order and every level touched in full, every book in full each 100,000; a planted bug, a partial cancel not reducing its level, caught at operation 7), `check_hot_path` (S3: 16 subjects; D2 B on `std::allocator` caught), `day_test` (S4). Clean under ASan and UBSan. Found: (1) S2's first runs failed at 1,048,577 live orders, one past the test's configured capacity: the fast books refused as they should and the reference, without capacity, did not; the stream now holds live orders near 100,000. (2) The node pool's unreachable exhaustion was a throw, and a throw allocates (S3 flagged it): now a trap. (3) S4's end-of-day comparison compared nothing: every order is gone by the close. Full books are now compared every 50 million messages too (at 100 million: 1,743,843 orders live, 26,697 books, all equal to the reference and to the feed handler's reference book); the day's peak, 1,925,638 orders live, is the feed handler's figure exactly. (4) Trial of `book_bench` (not bench mode): the day is 417,219,234 operations of 423,285,709 messages, none left out; levels A with table A 11.2 M operations a second, p50 107 ns, 1,321 MB; table B (open addressing) is slower even in the synthetic book that stays in cache (an add at the best level p50 137 against 37 ns): sequential IDs through a multiplicative hash land at random in a 128 MB table, a cache and TLB miss each, where the direct array keeps consecutive IDs together. An alternative not agreed: open addressing indexed by the ID's low bits (`id & mask`), bounded memory with the direct array's locality: for Shep. The reference's maximum, 145 ms, is its containers growing |
+| 2026-11-03 | Agreed (building) | Decided by Shep (A): table C built (open addressing, the ID's low bits as the home slot), measured beside A and B. S1 (207 checks over six combinations and the reference), S2 (10 million operations, all six equal to the reference) and S3 (24 subjects) pass with it. S2 as built compares, after every operation, the answer, the order and every level touched, and every book in full each 100,000 (comparing every book after every operation is O(levels) an operation): the Spec amended to say so. Shep asked whether the records come from a pool: they do, all of them (order records, levels, D2 A's arena, D2 B's nodes, the order table), each allocated once at start; the queue's links are fields of the order records, so the list has no nodes of its own; S3 checks nothing else allocates |

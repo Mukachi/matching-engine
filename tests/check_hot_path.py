@@ -8,13 +8,13 @@ transitively, may call only memory copies, moves, sets and comparisons, the
 stack protector's abort and libstdc++'s red-black tree rebalancing (pure code:
 no allocation, no system call; D2 B's std::map), never through a pointer, and
 contains no syscall instruction. The subjects: add, cancel part, cancel and
-replace, on every combination of D1 and D2.
+replace, on every combination of D1 (A, B, C) and D2.
 """
 import re
 import subprocess
 import sys
 
-SUBJECTS = [f"me_{op}_{c}" for c in ("aa", "ab", "ba", "bb") for op in ("add", "cancel_part", "cancel", "replace")]
+SUBJECTS = [f"me_{op}_{c}" for c in ("aa", "ab", "ba", "bb", "ac", "bc") for op in ("add", "cancel_part", "cancel", "replace")]
 # __memcpy_chk and the like: with a bounds check (_FORTIFY_SOURCE, Ubuntu's default).
 MEMORY = {"memcpy@plt", "__memcpy_chk@plt", "memmove@plt", "__memmove_chk@plt", "memcmp@plt", "__stack_chk_fail@plt",
           "memset@plt", "__memset_chk@plt", "memchr@plt",
