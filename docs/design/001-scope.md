@@ -33,8 +33,8 @@ oracle the reference cannot share our mistakes with.
 
 It does:
 
-- one book per instrument and an engine over them: limit orders (day, immediate-or-cancel,
-  fill-or-kill), market orders, cancel (whole or part), replace (D2's priority rules);
+- one book per instrument and an engine over them: limit and market orders, immediate-or-cancel,
+  cancel (whole or part), replace (D2's priority rules);
 - trades and order states reported per message, in sequence;
 - a reference implementation written for clarity (ordered maps, lists): the oracle and the
   baseline;
@@ -44,8 +44,8 @@ It does:
 It does not:
 
 - run auctions (Nasdaq's opening, closing and halt crosses), hidden or reserve orders, pegs,
-  routing or self-trade prevention: each is a rule of its own (D2 says which are left out and
-  why);
+  routing, anti-internalization or Limit Order Protection: each is a rule of its own (D2 says
+  which are left out, by clause);
 - take orders over a network or a protocol: the engine is a library and a benchmark (D5);
 - connect to the repos before it, unless D5 says so;
 - clear, settle or keep positions.
@@ -54,11 +54,16 @@ It does not:
 
 **Sources**, all public:
 
-- *The Nasdaq Stock Market LLC Rules*, Equity 4, Rule 4757 ("Book Processing"): price, then
-  display, then time; displayed orders at a price first in, first out, ahead of non-displayed
-  interest. The text is read from Nasdaq's live rulebook before the Draft is agreed (the filings
-  found show amendments, Extended Life Priority among them), and the clauses used are cited by
-  number in note 002.
+- *The Nasdaq Stock Market LLC Rules*, Equity 4, Rule 4757 ("Book Processing"), as amended to
+  30 March 2026 (operative 29 April 2026), read from Nasdaq's rulebook on 3 November 2026: Orders
+  on the book are presented to an incoming Order by price (4757(a)(1)(A)), then, among equally
+  priced Orders with a Display Attribute, by time (4757(a)(1)(B)); Orders with a Non-Display
+  Attribute after them, by time (4757(a)(1)(C)); an execution decrements the order by its size
+  (4757(a)(2)); price improvement accrues to the taker of liquidity, so a trade is at the resting
+  order's price (4757(a)(3)). The rule does not say how a modification affects priority, or what
+  order types exist: those come from the rules that define them, read before D2 is agreed.
+  The sample day (30 January 2020) predates amendments of November 2020 and 2022 to 2026, so
+  D3's comparison is with the rule as it stood then, a cause of disagreement of its own.
 - *Nasdaq TotalView-ITCH 5.0* (the feed handler's source): Add Order (A, F), Order Executed (E),
   Order Executed With Price (C), Order Cancel (X), Order Delete (D), Order Replace (U), Trade
   (P, non-displayed), Cross Trade (Q).
@@ -71,7 +76,7 @@ aggressor is never shown. So the day replays as: each add, cancel, delete and re
 entry; each E as an aggressive order on the other side, at the resting order's price, for the
 shares executed. If our priority is Nasdaq's, the order we match is the one Nasdaq executed.
 Where it is not (C at another price, crosses, non-displayed interest the feed never showed,
-Extended Life Priority), the disagreement is counted by its cause, not hidden.
+the rule's changes since 2020), the disagreement is counted by its cause, not hidden.
 
 ```mermaid
 flowchart LR
@@ -88,16 +93,19 @@ flowchart LR
 
 - **D1. The name.** *Proposed (A):* `matching-engine`: names what is new against the feed
   handler's book. *Alternative (B):* `limit-order-book`.
-- **D2. The rules.** *Proposed (A):* Rule 4757's ranking for displayed orders: price, then time
-  of entry; a replace that raises the quantity or changes the price loses its time, one that only
-  lowers the quantity keeps it; limit (day, IOC, FOK) and market orders; a match never trades
-  through a better resting price. Left out, each named: auctions, hidden and reserve orders, pegs,
-  Extended Life Priority, routing, self-trade prevention. *Alternative (B):* also reserve orders
+- **D2. The rules.** *Proposed (A):* Rule 4757's processing for displayed orders: price, then
+  time (4757(a)(1)(A) and (B)); decrementation (4757(a)(2)); every trade at the resting order's
+  price, so a match never trades through a better resting price (4757(a)(3)); a modification's
+  effect on priority and the order types (limit orders, immediate-or-cancel, market orders) as the
+  rules defining them say, cited when read. Left out, each named: non-displayed and reserve
+  interest (4757(a)(1)(C)), Supplemental Orders and routing (4757(a)(1)(D), (b)),
+  anti-internalization, the rule's self-trade prevention (4757(a)(4)), Limit Order Protection, a
+  price collar at entry (4757(c)), auctions and pegs. *Alternative (B):* also reserve orders
   (displayed and non-displayed parts), the first rule that makes display matter.
 - **D3. The workload and the second oracle.** *Proposed (A):* the sample day replayed as order
   entry, as above: our fills against Nasdaq's executions, agreement and every disagreement
   published by cause; plus synthetic streams (fixed seed) for what the day lacks: market orders,
-  sweeps of several levels, fill-or-kill. *Alternative (B):* synthetic streams only: simpler, but
+  sweeps of several levels. *Alternative (B):* synthetic streams only: simpler, but
   no oracle outside our own code.
 - **D4. The structures.** *Proposed (A):* measured alternatives, as the feed handler's book was:
   the order table as a direct array by ID against an open-addressing hash; price levels as a
@@ -141,3 +149,4 @@ replay and the oracle (D3), 005 measurement and the report.
 |---|---|---|
 | 2026-11-03 | Draft | Written from Shep's ideas (a pasted outline) and the record. From the outline: price-time priority, O(1) cancel by ID, intrusive lists, pools, per-operation workloads, percentiles. Not taken, against the established standard: means (percentiles only), `-march=native` (the build's flags are fixed and recorded), subtracting the timer's overhead (stated beside the figures instead), typed-in README numbers and CSV output (JSON runs and a generated report), its hardware line (wrong: 2 × 22 cores, 88 threads). Rule 4757 found in SEC filings; its live text to be read before agreement. Liquibook's licence and maintenance not confirmed |
 | 2026-11-03 | Draft | D1 agreed by Shep: `matching-engine` (the exchange's side, the book that decides the fills; the feed handler's book is a copy that applies them) |
+| 2026-11-03 | Draft | Rule 4757's live text read (Shep's paste from Nasdaq's rulebook; its site refuses automated fetches): D2 checked clause by clause and cited. Changed: Extended Life Priority is not in the current text (removed); Limit Order Protection (4757(c)) added to what is left out; anti-internalization named as the rule's self-trade prevention. Not in 4757: how a modification affects priority, and the order types (fill-or-kill dropped until a rule offers it): both from the rules defining them, before D2 is agreed. The rule was amended after the sample day (Nov 2020, 2022-2026): a cause of disagreement in D3 |
