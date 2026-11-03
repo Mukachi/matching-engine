@@ -4,11 +4,17 @@
 //      construction, so no hashing and no probe; it grows with every order
 //      entered (fixed capacity, pre-faulted; past it, an add is refused)
 //   B  open addressing over a fixed table sized for the orders live at once
-//      (twice them, as a power of two), linear probing, deletion by backward
-//      shift (no tombstones): memory bounded by live orders
+//      (twice them, as a power of two), linear probing in Robin Hood order
+//      (an entry never sits farther from its home than the one after it),
+//      deletion by backward shift (no tombstones): memory bounded by live
+//      orders
 //   C  as B, the home slot the ID's low bits instead of a hash: the engine's
 //      IDs come in sequence, so consecutive orders sit together, as in A,
 //      with B's bound on memory (Shep's decision A, note 002's Review)
+// Robin Hood order is what lets a deletion stop at the first entry in its own
+// home slot, and a missed lookup at the first entry nearer its home than the
+// probe: without it C's sequential IDs make one run of every live order, and a
+// deletion scanned the whole run to its end (note 002's Review, 3 Nov).
 // Design: docs/design/002-book.md
 #pragma once
 
@@ -17,6 +23,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <utility>
 
 namespace me {
 
@@ -40,28 +47,35 @@ struct table_open {
         : mask_(pow2_at_least(2 * c.orders) - 1), shift_(64 - std::countr_zero(mask_ + 1)), e_(zeroed<entry>(mask_ + 1, c.prefault)) {}
     bool can_take(order_id id) const { return id >= 1; }
     void put(order_id id, std::uint32_t slot) {
-        std::size_t i = home(id);
-        while (e_[i].id != 0) i = (i + 1) & mask_;
-        e_[i] = {id, slot};
+        entry carry{id, slot};
+        std::size_t d = 0;  // carry's distance from its home
+        for (std::size_t i = home(id);; i = (i + 1) & mask_, ++d) {
+            if (e_[i].id == 0) {
+                e_[i] = carry;
+                return;
+            }
+            const std::size_t r = distance(i);
+            if (r < d) {  // the resident is nearer its home: carry takes its place
+                std::swap(e_[i], carry);
+                d = r;
+            }
+        }
     }
     std::uint32_t get(order_id id) const {
         if (id == 0) return npos;
-        for (std::size_t i = home(id);; i = (i + 1) & mask_) {
+        for (std::size_t i = home(id), d = 0;; i = (i + 1) & mask_, ++d) {
             if (e_[i].id == id) return e_[i].slot;
-            if (e_[i].id == 0) return npos;
+            if (e_[i].id == 0 || distance(i) < d) return npos;
         }
     }
     void erase(order_id id) {
         std::size_t i = home(id);
         while (e_[i].id != id) i = (i + 1) & mask_;
-        // Backward shift: pull each later entry of the run into the hole if
-        // its home is not between the hole and itself.
-        for (std::size_t j = (i + 1) & mask_; e_[j].id != 0; j = (j + 1) & mask_) {
-            const std::size_t h = home(e_[j].id);
-            if (((j - h) & mask_) >= ((j - i) & mask_)) {
-                e_[i] = e_[j];
-                i = j;
-            }
+        // Backward shift: each later entry away from its home moves back one;
+        // the first empty or at its home ends the run's shifted part.
+        for (std::size_t j = (i + 1) & mask_; e_[j].id != 0 && distance(j) != 0; j = (j + 1) & mask_) {
+            e_[i] = e_[j];
+            i = j;
         }
         e_[i] = {0, 0};
     }
@@ -75,6 +89,7 @@ private:
         if constexpr (Hashed) return static_cast<std::size_t>((id * 0x9E3779B97F4A7C15ull) >> shift_);
         else return static_cast<std::size_t>(id) & mask_;
     }
+    std::size_t distance(std::size_t i) const { return (i - home(e_[i].id)) & mask_; }
     std::size_t mask_;
     int shift_;
     table<entry> e_;
