@@ -65,13 +65,18 @@ It does not:
   marketable" (4703(a)(1)); a Participant "may always cancel an Order after it is entered"
   (4703(a)); sizes are whole shares from 1 to 999,999 (4703(b)); "all Orders must have a price",
   at most $199,999.99, an unpriced order arising only in the crosses or as a peg to the far side
-  (4703(c)). Neither rule says how a modification affects priority: that clause is still to be
-  found before D2 is agreed.
+  (4703(c)). Neither rule says how a modification affects priority (4703(m), Trade Now, keeps
+  priority only for its own case, non-displayed interest); the book's behaviour is in Nasdaq's
+  feed specification instead (below).
   The sample day (30 January 2020) predates amendments of November 2020 and 2022 to 2026, so
   D3's comparison is with the rule as it stood then, a cause of disagreement of its own.
 - *Nasdaq TotalView-ITCH 5.0* (the feed handler's source): Add Order (A, F), Order Executed (E),
   Order Executed With Price (C), Order Cancel (X), Order Delete (D), Order Replace (U), Trade
-  (P, non-displayed), Cross Trade (Q).
+  (P, non-displayed), Cross Trade (Q). It is also the source for modification: an Order Cancel
+  reduces an order's shares and the order keeps its reference and its place; an Order Replace
+  removes the order and adds a new one, with a new reference, at the back of its level, whatever
+  changed (as the feed handler's note 002 applies over the whole day). A feed specification's
+  description of Nasdaq's book, cited as that, not as a rule.
 - The sample day of 30 January 2020, as the feed handler and tick-to-trade use it: never
   redistributed, its size and SHA-256 checked.
 
@@ -102,7 +107,9 @@ flowchart LR
   time (4757(a)(1)(A) and (B)); decrementation (4757(a)(2)); every trade at the resting order's
   price, so a match never trades through a better resting price (4757(a)(3)); limit orders that
   rest until cancelled, and immediate-or-cancel (4703(a)(1)); entry refused outside 4703(b)'s sizes
-  and 4703(c)'s price; a modification's effect on priority as the clause found says. No market
+  and 4703(c)'s price; a modification as ITCH 5.0 shows Nasdaq's book doing it: cancelling part
+  of an order keeps its place, a replace (of price or size, up or down) is a new order at the back
+  of its level. No market
   orders (4703(c): every order is priced; the crosses and pegs that make unpriced ones are left
   out) and no fill-or-kill (not offered); a sweep of several levels is a marketable limit order. Left out, each named: non-displayed and reserve
   interest (4757(a)(1)(C)), Supplemental Orders and routing (4757(a)(1)(D), (b)),
@@ -158,3 +165,4 @@ replay and the oracle (D3), 005 measurement and the report.
 | 2026-11-03 | Draft | D1 agreed by Shep: `matching-engine` (the exchange's side, the book that decides the fills; the feed handler's book is a copy that applies them) |
 | 2026-11-03 | Draft | Rule 4757's live text read (Shep's paste from Nasdaq's rulebook; its site refuses automated fetches): D2 checked clause by clause and cited. Changed: Extended Life Priority is not in the current text (removed); Limit Order Protection (4757(c)) added to what is left out; anti-internalization named as the rule's self-trade prevention. Not in 4757: how a modification affects priority, and the order types (fill-or-kill dropped until a rule offers it): both from the rules defining them, before D2 is agreed. The rule was amended after the sample day (Nov 2020, 2022-2026): a cause of disagreement in D3 |
 | 2026-11-03 | Draft | Rule 4703 read (Shep's paste): IOC (4703(a)(1)), cancel at any time (4703(a)), sizes (4703(b)) and price (4703(c)) cited; market orders dropped (4703(c): every order priced, unpriced only in crosses or as a peg, both out), sweeps by marketable limits; fill-or-kill confirmed not offered. Modification's effect on priority still not found (not in 4757 or 4703(a)-(c)) |
+| 2026-11-03 | Draft | Modification: no clause found in the rules read (4703(m), Trade Now, pasted: not it). Sourced from ITCH 5.0 instead, as the feed handler's note 002 applies it: Order Cancel keeps the order's place, Order Replace is a new order at the back of its level whatever changed. Stricter than the first Draft (which kept priority for a size decrease by replace); keeping priority means cancelling part. Cited as the feed spec's description of the book, not a rule |
