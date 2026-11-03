@@ -1,6 +1,6 @@
 # 002 — The rules and the book
 
-**Status:** Draft · **Updated:** 2026-11-03
+**Status:** Agreed · **Updated:** 2026-11-03
 
 ## Proposal
 
@@ -94,6 +94,28 @@ flowchart LR
   does: the same day as the feed handler's book, so the two books' figures can stand side by side.
   *Alternative:* synthetic only.
 
+**Alternatives recorded for later** (not built by this note; each would be measured against
+the agreed design, as D1 and D2 are). The agreed design is correct for the operations but not
+built around memory traffic, and on this machine memory is the cost: an operation follows
+dependent reads (order table, record, level), mostly cache and TLB misses with millions of
+orders live (the feed handler's note 002: the lookup, not the levels, is what every event pays).
+
+- *Huge pages* for the pools and the order table: 4 million records of 64 bytes are 256 MB, and
+  with 4 KB pages nearly every random read is a TLB miss too (the feed handler's hold gained from
+  them, its note 005).
+- *A hot record of 32 bytes*: matching needs price, shares and the queue's two links; ID, owner
+  and entry time kept apart; 32-bit indexes in place of pointers: two orders a cache line.
+- *A contiguous queue per level* (D3's alternative), measured rather than argued: a sweep reads
+  from the head, which a contiguous queue prefetches and a list chases; cancels from the middle
+  leave tombstones, removed later. The day's flow (mostly adds and cancels) favours the list,
+  sweeps the queue.
+- *A level array indexed by price with a bitmap of occupied prices* (a third form of D2): a level
+  found in one step; the next best after a sweep empties one by a find-first-set. The feed
+  handler's like structure was its fastest book, by about 6% in throughput for about 10% more
+  memory.
+- *Prefetching the next operation's record* while the current one is done: throughput, not one
+  operation's latency, and it needs input batched ahead.
+
 ## Spec
 
 - S1. Each rule in the table above has a test built to break it, and passes; each refusal of D6
@@ -123,3 +145,4 @@ flowchart LR
 | Date | Stage | Finding |
 |---|---|---|
 | 2026-11-03 | Draft | Written from note 001 (D2, D4) and the feed handler's note 002 (its structures and the sample day's peaks). Found: the engine assigns its own IDs in sequence, so a direct array by ID is dense by construction (the feed handler's had 45% of its range used); its cost is memory growing with every order entered, against open addressing's bound on live orders (D1). A first version of D5 refused locking or crossing adds; dropped before review: the day's book was crossed in halts, and keeping the book uncrossed is the engine's (note 003) |
+| 2026-11-03 | Agreed | Shep asked whether the standard design could be improved: five alternatives recorded above for later (huge pages, a 32-byte hot record, a contiguous queue, a price-indexed level array with a bitmap, prefetching), not built here. Approved by Shep, every decision as proposed (option A each): D1 and D2 each in two forms, measured; D3 one pool and an intrusive queue; D4 capacity from configuration; D5 the book does not check crossing; D6 refusals answered and counted; D7 synthetic streams and the day's book events |
