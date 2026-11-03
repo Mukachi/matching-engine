@@ -88,3 +88,16 @@ if(CMAKE_OBJDUMP AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64" AND NOT CMAKE
            COMMAND Python3::Interpreter -I ${CMAKE_SOURCE_DIR}/tests/check_hot_path.py
                    ${CMAKE_OBJDUMP} $<TARGET_FILE:hot_path_subject>)
 endif()
+# S4 of note 002: the sample day's book events (D7), the whole day (label `data`).
+add_executable(day_test tests/day_test.cpp)
+target_link_libraries(day_test PRIVATE me)
+target_compile_definitions(day_test PRIVATE ME_DATA_DIR="${ME_DATA_DIR}")
+add_test(NAME day_test COMMAND day_test)
+set_tests_properties(day_test PROPERTIES LABELS data TIMEOUT 14400)
+# S5 of note 002: the books' cost, the day and the synthetic cases.
+add_executable(book_bench bench/book_bench.cpp)
+target_link_libraries(book_bench PRIVATE me)
+target_compile_definitions(book_bench PRIVATE ME_DATA_DIR="${ME_DATA_DIR}" LFIPC_RESULTS_DIR="${CMAKE_SOURCE_DIR}/results")
+# One number everywhere: RESULTS.md and the README agree with the published JSON.
+add_test(NAME report_check COMMAND Python3::Interpreter -I ${CMAKE_SOURCE_DIR}/run.py report --check
+                                  --lockfree-ipc ${lockfree_ipc_SOURCE_DIR})

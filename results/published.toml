@@ -1,0 +1,3 @@
+# Published result sets: the files run.py report reads, each listed run
+# validated first (lockfree-ipc's note 007 rules). To publish: add the run
+# files here, run `python run.py report`, commit.
