@@ -33,7 +33,7 @@ oracle the reference cannot share our mistakes with.
 
 It does:
 
-- one book per instrument and an engine over them: limit and market orders, immediate-or-cancel,
+- one book per instrument and an engine over them: limit orders resting or immediate-or-cancel,
   cancel (whole or part), replace (D2's priority rules);
 - trades and order states reported per message, in sequence;
 - a reference implementation written for clarity (ordered maps, lists): the oracle and the
@@ -60,8 +60,13 @@ It does not:
   priced Orders with a Display Attribute, by time (4757(a)(1)(B)); Orders with a Non-Display
   Attribute after them, by time (4757(a)(1)(C)); an execution decrements the order by its size
   (4757(a)(2)); price improvement accrues to the taker of liquidity, so a trade is at the resting
-  order's price (4757(a)(3)). The rule does not say how a modification affects priority, or what
-  order types exist: those come from the rules that define them, read before D2 is agreed.
+  order's price (4757(a)(3)). Rule 4703 ("Order Attributes"), read the same day: a Time-in-Force
+  of "Immediate or Cancel" deactivates "immediately after determining whether the Order is
+  marketable" (4703(a)(1)); a Participant "may always cancel an Order after it is entered"
+  (4703(a)); sizes are whole shares from 1 to 999,999 (4703(b)); "all Orders must have a price",
+  at most $199,999.99, an unpriced order arising only in the crosses or as a peg to the far side
+  (4703(c)). Neither rule says how a modification affects priority: that clause is still to be
+  found before D2 is agreed.
   The sample day (30 January 2020) predates amendments of November 2020 and 2022 to 2026, so
   D3's comparison is with the rule as it stood then, a cause of disagreement of its own.
 - *Nasdaq TotalView-ITCH 5.0* (the feed handler's source): Add Order (A, F), Order Executed (E),
@@ -95,17 +100,19 @@ flowchart LR
   handler's book. *Alternative (B):* `limit-order-book`.
 - **D2. The rules.** *Proposed (A):* Rule 4757's processing for displayed orders: price, then
   time (4757(a)(1)(A) and (B)); decrementation (4757(a)(2)); every trade at the resting order's
-  price, so a match never trades through a better resting price (4757(a)(3)); a modification's
-  effect on priority and the order types (limit orders, immediate-or-cancel, market orders) as the
-  rules defining them say, cited when read. Left out, each named: non-displayed and reserve
+  price, so a match never trades through a better resting price (4757(a)(3)); limit orders that
+  rest until cancelled, and immediate-or-cancel (4703(a)(1)); entry refused outside 4703(b)'s sizes
+  and 4703(c)'s price; a modification's effect on priority as the clause found says. No market
+  orders (4703(c): every order is priced; the crosses and pegs that make unpriced ones are left
+  out) and no fill-or-kill (not offered); a sweep of several levels is a marketable limit order. Left out, each named: non-displayed and reserve
   interest (4757(a)(1)(C)), Supplemental Orders and routing (4757(a)(1)(D), (b)),
   anti-internalization, the rule's self-trade prevention (4757(a)(4)), Limit Order Protection, a
   price collar at entry (4757(c)), auctions and pegs. *Alternative (B):* also reserve orders
   (displayed and non-displayed parts), the first rule that makes display matter.
 - **D3. The workload and the second oracle.** *Proposed (A):* the sample day replayed as order
   entry, as above: our fills against Nasdaq's executions, agreement and every disagreement
-  published by cause; plus synthetic streams (fixed seed) for what the day lacks: market orders,
-  sweeps of several levels. *Alternative (B):* synthetic streams only: simpler, but
+  published by cause; plus synthetic streams (fixed seed) for what the day lacks: aggressive
+  orders sweeping several levels, immediate-or-cancel remainders. *Alternative (B):* synthetic streams only: simpler, but
   no oracle outside our own code.
 - **D4. The structures.** *Proposed (A):* measured alternatives, as the feed handler's book was:
   the order table as a direct array by ID against an open-addressing hash; price levels as a
@@ -150,3 +157,4 @@ replay and the oracle (D3), 005 measurement and the report.
 | 2026-11-03 | Draft | Written from Shep's ideas (a pasted outline) and the record. From the outline: price-time priority, O(1) cancel by ID, intrusive lists, pools, per-operation workloads, percentiles. Not taken, against the established standard: means (percentiles only), `-march=native` (the build's flags are fixed and recorded), subtracting the timer's overhead (stated beside the figures instead), typed-in README numbers and CSV output (JSON runs and a generated report), its hardware line (wrong: 2 × 22 cores, 88 threads). Rule 4757 found in SEC filings; its live text to be read before agreement. Liquibook's licence and maintenance not confirmed |
 | 2026-11-03 | Draft | D1 agreed by Shep: `matching-engine` (the exchange's side, the book that decides the fills; the feed handler's book is a copy that applies them) |
 | 2026-11-03 | Draft | Rule 4757's live text read (Shep's paste from Nasdaq's rulebook; its site refuses automated fetches): D2 checked clause by clause and cited. Changed: Extended Life Priority is not in the current text (removed); Limit Order Protection (4757(c)) added to what is left out; anti-internalization named as the rule's self-trade prevention. Not in 4757: how a modification affects priority, and the order types (fill-or-kill dropped until a rule offers it): both from the rules defining them, before D2 is agreed. The rule was amended after the sample day (Nov 2020, 2022-2026): a cause of disagreement in D3 |
+| 2026-11-03 | Draft | Rule 4703 read (Shep's paste): IOC (4703(a)(1)), cancel at any time (4703(a)), sizes (4703(b)) and price (4703(c)) cited; market orders dropped (4703(c): every order priced, unpriced only in crosses or as a peg, both out), sweeps by marketable limits; fill-or-kill confirmed not offered. Modification's effect on priority still not found (not in 4757 or 4703(a)-(c)) |
