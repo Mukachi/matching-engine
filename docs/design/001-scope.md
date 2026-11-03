@@ -1,6 +1,6 @@
 # 001 — Scope and plan
 
-**Status:** Draft · **Updated:** 2026-11-03
+**Status:** Agreed · **Updated:** 2026-11-03
 
 ## Proposal
 
@@ -166,3 +166,4 @@ replay and the oracle (D3), 005 measurement and the report.
 | 2026-11-03 | Draft | Rule 4757's live text read (Shep's paste from Nasdaq's rulebook; its site refuses automated fetches): D2 checked clause by clause and cited. Changed: Extended Life Priority is not in the current text (removed); Limit Order Protection (4757(c)) added to what is left out; anti-internalization named as the rule's self-trade prevention. Not in 4757: how a modification affects priority, and the order types (fill-or-kill dropped until a rule offers it): both from the rules defining them, before D2 is agreed. The rule was amended after the sample day (Nov 2020, 2022-2026): a cause of disagreement in D3 |
 | 2026-11-03 | Draft | Rule 4703 read (Shep's paste): IOC (4703(a)(1)), cancel at any time (4703(a)), sizes (4703(b)) and price (4703(c)) cited; market orders dropped (4703(c): every order priced, unpriced only in crosses or as a peg, both out), sweeps by marketable limits; fill-or-kill confirmed not offered. Modification's effect on priority still not found (not in 4757 or 4703(a)-(c)) |
 | 2026-11-03 | Draft | Modification: no clause found in the rules read (4703(m), Trade Now, pasted: not it). Sourced from ITCH 5.0 instead, as the feed handler's note 002 applies it: Order Cancel keeps the order's place, Order Replace is a new order at the back of its level whatever changed. Stricter than the first Draft (which kept priority for a size decrease by replace); keeping priority means cancelling part. Cited as the feed spec's description of the book, not a rule |
+| 2026-11-03 | Agreed | Approved by Shep, every decision as proposed (option A each): D1 `matching-engine`; D2 Rule 4757's displayed price-time, 4703's IOC, sizes and price, ITCH 5.0's modification, the rest left out by clause; D3 the sample day as order entry with Nasdaq's executions as a second oracle, plus synthetic sweeps; D4 the order table and the price levels each in two forms, measured; D5 a single-threaded library, lockfree-ipc's SPSC ring in front, measured; D6 no third-party baseline |
