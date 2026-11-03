@@ -171,8 +171,6 @@ int main() {
     rules<market<levels_sorted, table_hash>>("levels A, table B", true);
     rules<market<levels_map, table_direct>>("levels B, table A", true);
     rules<market<levels_map, table_hash>>("levels B, table B", true);
-    rules<market<levels_sorted, table_low>>("levels A, table C", true);
-    rules<market<levels_map, table_low>>("levels B, table C", true);
     rules<reference_market>("reference", false);
     ids_capacity<market<levels_sorted, table_direct>>("levels A, table A");
     ids_capacity<market<levels_map, table_direct>>("levels B, table A");

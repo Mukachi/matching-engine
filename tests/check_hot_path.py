@@ -14,7 +14,7 @@ import re
 import subprocess
 import sys
 
-SUBJECTS = [f"me_{op}_{c}" for c in ("aa", "ab", "ba", "bb", "ac", "bc") for op in ("add", "cancel_part", "cancel", "replace")]
+SUBJECTS = [f"me_{op}_{c}" for c in ("aa", "ab", "ba", "bb") for op in ("add", "cancel_part", "cancel", "replace")]
 # __memcpy_chk and the like: with a bounds check (_FORTIFY_SOURCE, Ubuntu's default).
 MEMORY = {"memcpy@plt", "__memcpy_chk@plt", "memmove@plt", "__memmove_chk@plt", "memcmp@plt", "__stack_chk_fail@plt",
           "memset@plt", "__memset_chk@plt", "memchr@plt",

@@ -16,8 +16,6 @@ SUBJECTS(aa, levels_sorted, table_direct)
 SUBJECTS(ab, levels_sorted, table_hash)
 SUBJECTS(ba, levels_map, table_direct)
 SUBJECTS(bb, levels_map, table_hash)
-SUBJECTS(ac, levels_sorted, table_low)
-SUBJECTS(bc, levels_map, table_low)
 
 int main(int argc, char**) {
     if (argc > 99) {  // never: keeps the subjects
@@ -25,8 +23,6 @@ int main(int argc, char**) {
         me_add_ab(0, side::buy, 1, 1), me_cancel_part_ab(1, 1), me_cancel_ab(1), me_replace_ab(1, 1, 1);
         me_add_ba(0, side::buy, 1, 1), me_cancel_part_ba(1, 1), me_cancel_ba(1), me_replace_ba(1, 1, 1);
         me_add_bb(0, side::buy, 1, 1), me_cancel_part_bb(1, 1), me_cancel_bb(1), me_replace_bb(1, 1, 1);
-        me_add_ac(0, side::buy, 1, 1), me_cancel_part_ac(1, 1), me_cancel_ac(1), me_replace_ac(1, 1, 1);
-        me_add_bc(0, side::buy, 1, 1), me_cancel_part_bc(1, 1), me_cancel_bc(1), me_replace_bc(1, 1, 1);
     }
     return 0;
 }

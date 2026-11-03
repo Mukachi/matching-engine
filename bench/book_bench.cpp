@@ -368,8 +368,6 @@ int main(int argc, char** argv) {
     results.push_back(fast<levels_sorted, table_hash>(ops));
     results.push_back(fast<levels_map, table_direct>(ops));
     results.push_back(fast<levels_map, table_hash>(ops));
-    results.push_back(fast<levels_sorted, table_low>(ops));
-    results.push_back(fast<levels_map, table_low>(ops));
 
     write_noise_block(run.w, noise, tpn);
     write_clock_block(run.w, clk);

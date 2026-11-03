@@ -42,16 +42,12 @@ using AA = market<levels_sorted, table_direct>;
 using AB = market<levels_sorted, table_hash>;
 using BA = market<levels_map, table_direct>;
 using BB = market<levels_map, table_hash>;
-using AC = market<levels_sorted, table_low>;
-using BC = market<levels_map, table_low>;
 
 struct books {
     AA aa{cfg()};
     AB ab{cfg()};
     BA ba{cfg()};
     BB bb{cfg()};
-    AC ac{cfg()};
-    BC bc{cfg()};
     reference_market ref{cfg()};
 };
 
@@ -59,7 +55,7 @@ bool same(const answer& a, const answer& b) { return a.why == b.why && a.id == b
 
 template <class F>
 bool all(books& b, F&& f) {
-    return f(b.aa) && f(b.ab) && f(b.ba) && f(b.bb) && f(b.ac) && f(b.bc);
+    return f(b.aa) && f(b.ab) && f(b.ba) && f(b.bb);
 }
 
 bool run(std::uint64_t seed, std::size_t n, std::size_t& deepest) {

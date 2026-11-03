@@ -45,14 +45,12 @@ struct books {
     market<levels_sorted, table_hash> ab{day()};
     market<levels_map, table_direct> ba{day()};
     market<levels_map, table_hash> bb{day()};
-    market<levels_sorted, table_low> ac{day()};
-    market<levels_map, table_low> bc{day()};
     reference_market ref{day()};
 };
 
 template <class F>
 bool all(books& b, F&& f) {
-    return f(b.aa) && f(b.ab) && f(b.ba) && f(b.bb) && f(b.ac) && f(b.bc);
+    return f(b.aa) && f(b.ab) && f(b.ba) && f(b.bb);
 }
 bool same(const answer& a, const answer& b) { return a.why == b.why && a.id == b.id; }
 
