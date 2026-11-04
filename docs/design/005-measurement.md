@@ -51,7 +51,9 @@ no timed window holds decoding or the reference map, and the engines end in the 
   on CPU 3 sends `{seq, intended}` through `spsc_ring` (its default, v3) at a fixed rate; the
   system under test's `try_receive`, on CPU 2, takes a message and applies step `seq` to the
   engine before returning, so the latency recorded (intended send time to receipt) holds the
-  ring and the engine's work, and a late producer is counted as lockfree-ipc's harness counts it.
+  ring and the engine's work; a rate the producer cannot keep (its lateness p99 above the send
+  interval, as when the engine falls behind and the ring fills) is refused by the harness, as
+  lockfree-ipc's note 003 refuses it, and published as refused.
   Rates 1, 2 and 5 million messages a second (the engine alone does ~10.9 million on the
   day's book events), each over the day's first 50 million steps after a warm-up; beside it,
   the same steps applied on CPU 2 with no ring at all, at the same rates, as the baseline the
@@ -67,7 +69,7 @@ no timed window holds decoding or the reference map, and the engines end in the 
   equal to the conversion's.
 - S2. The ring under open-loop load at D3's rates: latency percentiles from intended send time to
   the step applied, with the producer's lateness, beside the same steps applied with no ring;
-  the producer never refused a message that the harness did not count.
+  a rate the harness refuses published as refused, not left out.
 - S3. Both published from at least three runs via `run.py report`, the README's figures from
   generated blocks only.
 
