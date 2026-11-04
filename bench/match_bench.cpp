@@ -66,7 +66,7 @@ struct counting {
         maker = t.maker;
     }
     void rested(order_id, price_t, shares_t) { ++n; }
-    void cancelled(order_id, shares_t s) { shares += s; }
+    void cancelled(order_id, shares_t s, cause) { shares += s; }
 };
 
 struct result {

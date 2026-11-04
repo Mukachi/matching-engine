@@ -18,6 +18,7 @@ struct report {
     trade_report t{};
     price_t price = 0;
     shares_t shares = 0;
+    me::cause c = me::cause::requested;  // cancelled
     bool operator==(const report&) const = default;
 };
 
@@ -31,7 +32,9 @@ inline std::string to_string(const report& r) {
                           (unsigned long long)r.t.taker, (unsigned long long)r.t.maker, r.t.price, r.t.shares, r.t.maker_left);
             break;
         case report::rested: std::snprintf(b, sizeof b, "rested %llu @%u x%u", (unsigned long long)r.id, r.price, r.shares); break;
-        case report::cancelled: std::snprintf(b, sizeof b, "cancelled %llu x%u", (unsigned long long)r.id, r.shares); break;
+        case report::cancelled:
+            std::snprintf(b, sizeof b, "cancelled %llu x%u (%s)", (unsigned long long)r.id, r.shares, me::to_string(r.c));
+            break;
     }
     return b;
 }
@@ -42,7 +45,7 @@ struct recorder {
     void refused(refusal why) { out.push_back({report::refused, 0, why}); }
     void trade(const trade_report& t) { out.push_back({report::trade, 0, refusal::none, t}); }
     void rested(order_id id, price_t p, shares_t s) { out.push_back({report::rested, id, refusal::none, {}, p, s}); }
-    void cancelled(order_id id, shares_t s) { out.push_back({report::cancelled, id, refusal::none, {}, 0, s}); }
+    void cancelled(order_id id, shares_t s, me::cause c) { out.push_back({report::cancelled, id, refusal::none, {}, 0, s, c}); }
     // This message's reports, taken.
     std::vector<report> take() { return std::exchange(out, {}); }
 };

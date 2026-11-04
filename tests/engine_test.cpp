@@ -13,6 +13,7 @@
 #include <me/reference_market.hpp>
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -40,7 +41,7 @@ report T(std::uint64_t n, order_id taker, order_id maker, price_t p, shares_t q,
     return {report::trade, 0, refusal::none, {n, taker, maker, i, p, q, left}};
 }
 report R(order_id id, price_t p, shares_t q) { return {report::rested, id, refusal::none, {}, p, q}; }
-report C(order_id id, shares_t q) { return {report::cancelled, id, refusal::none, {}, 0, q}; }
+report C(order_id id, shares_t q, cause c) { return {report::cancelled, id, refusal::none, {}, 0, q, c}; }
 
 std::string show(const reports& rs) {
     std::string s;
@@ -51,12 +52,14 @@ std::string show(const reports& rs) {
 template <class M>
 struct fast {
     explicit fast(const config& c = small()) : m(c), e(m, r) {}
+    static constexpr bool direct = std::string_view(M::table_name).starts_with("A");
     M m;
     recorder r;
     engine<M, recorder> e;
 };
 struct ref {
     explicit ref(const config& c = small()) : m(c), e(m, r) {}
+    static constexpr bool direct = false;
     reference_market m;
     recorder r;
     reference_engine<recorder> e;
@@ -143,7 +146,7 @@ void rules(const std::string& name, bool fixed) {
         Rig g;
         rest(g, side::sell, 1010, 10);
         const auto r = msg(g, [](auto& e) { e.enter(0, side::buy, 1020, 15, tif::ioc); });
-        check(r == reports{A(2), T(1, 2, 1, 1010, 10, 0), C(2, 5)} && !g.m.find(2) && g.m.state(0, side::buy).empty(),
+        check(r == reports{A(2), T(1, 2, 1, 1010, 10, 0), C(2, 5, cause::ioc)} && !g.m.find(2) && g.m.state(0, side::buy).empty(),
               n + "4703(a)(1): an IOC matches as far as it goes; the rest cancelled, never rested: " + show(r));
     }
     {
@@ -152,21 +155,21 @@ void rules(const std::string& name, bool fixed) {
         const auto before = g.m.state(0, side::sell);
         const auto r = msg(g, [](auto& e) { e.enter(0, side::buy, 1000, 5, tif::ioc); });
         msg(g, [](auto& e) { e.enter(0, side::buy, 990, 5, tif::rest); });
-        check(r == reports{A(2), C(2, 5)} && g.m.state(0, side::sell) == before && g.m.find(3),
+        check(r == reports{A(2), C(2, 5, cause::ioc)} && g.m.state(0, side::sell) == before && g.m.find(3),
               n + "4703(a)(1): an IOC that meets nothing is cancelled whole, the book unchanged; D4: it took ID 2, the next order 3: " + show(r));
     }
     {
         Rig g;
         rest(g, side::buy, 1000, 10), rest(g, side::sell, 1020, 10);
         const auto r = msg(g, [](auto& e) { e.replace(1, 1010, 7); });
-        check(r == reports{C(1, 10), A(3), R(3, 1010, 7)} && !g.m.find(1),
+        check(r == reports{C(1, 10, cause::replaced), A(3), R(3, 1010, 7)} && !g.m.find(1),
               n + "a replace that does not cross: the old cancelled, the new accepted and rested: " + show(r));
     }
     {
         Rig g;
         rest(g, side::buy, 1000, 10), rest(g, side::sell, 1020, 4);
         const auto r = msg(g, [](auto& e) { e.replace(1, 1020, 10); });
-        check(r == reports{C(1, 10), A(3), T(1, 3, 2, 1020, 4, 0), R(3, 1020, 6)},
+        check(r == reports{C(1, 10, cause::replaced), A(3), T(1, 3, 2, 1020, 4, 0), R(3, 1020, 6)},
               n + "D3: a replace that crosses matches as a new order, the rest rests: " + show(r));
     }
     {
@@ -174,7 +177,7 @@ void rules(const std::string& name, bool fixed) {
         rest(g, side::buy, 1000, 5), rest(g, side::sell, 1020, 10);
         const auto r = msg(g, [](auto& e) { e.replace(1, 1030, 5); });
         msg(g, [](auto& e) { e.enter(0, side::buy, 900, 1, tif::rest); });
-        check(r == reports{C(1, 5), A(3), T(1, 3, 2, 1020, 5, 5)} && g.m.find(4) && g.m.state(0, side::buy).size() == 1,
+        check(r == reports{C(1, 5, cause::replaced), A(3), T(1, 3, 2, 1020, 5, 5)} && g.m.find(4) && g.m.state(0, side::buy).size() == 1,
               n + "D3: a replace filled whole rests nothing; its ID taken (the next order 4): " + show(r));
     }
     {
@@ -191,7 +194,7 @@ void rules(const std::string& name, bool fixed) {
         const auto r = msg(g, [](auto& e) { e.cancel(1, 4); });
         const bool kept = queue(g.m.state(0, side::buy), 0) == std::vector<queued>{{1, 6}, {2, 10}};
         const auto s = msg(g, [](auto& e) { e.cancel(1); });
-        check(r == reports{C(1, 4)} && kept && s == reports{C(1, 6)} && queue(g.m.state(0, side::buy), 0) == std::vector<queued>{{2, 10}},
+        check(r == reports{C(1, 4, cause::requested)} && kept && s == reports{C(1, 6, cause::requested)} && queue(g.m.state(0, side::buy), 0) == std::vector<queued>{{2, 10}},
               n + "cancels report what they removed; cancelling part keeps the place");
     }
     {
@@ -223,15 +226,31 @@ void rules(const std::string& name, bool fixed) {
                   "itself, changes nothing and takes no ID");
     }
     if (fixed) {
+        // Room is needed only by what rests (Shep's decision B): two records, both in use.
         config c = small();
         c.orders = 2;
         Rig g(c);
         rest(g, side::buy, 1000, 10), rest(g, side::sell, 1010, 10);
-        const auto r = msg(g, [](auto& e) { e.enter(0, side::buy, 1010, 5, tif::rest); });
-        const auto s = msg(g, [](auto& e) { e.enter(0, side::buy, 1010, 10, tif::ioc); });
-        const auto t = msg(g, [](auto& e) { e.enter(0, side::buy, 1010, 5, tif::rest); });
-        check(r == reports{X(refusal::no_orders)} && s == reports{A(3), T(1, 3, 2, 1010, 10, 0)} && t == reports{A(4), R(4, 1010, 5)},
-              n + "with no record free an order that may rest is refused before it matches; an IOC needs none and matches");
+        const auto r = msg(g, [](auto& e) { e.enter(0, side::buy, 1005, 5, tif::rest); });
+        const auto s = msg(g, [](auto& e) { e.enter(0, side::buy, 1010, 5, tif::rest); });
+        const auto t = msg(g, [](auto& e) { e.enter(0, side::buy, 1010, 10, tif::rest); });
+        check(r == reports{X(refusal::no_orders)} && s == reports{A(3), T(1, 3, 2, 1010, 5, 5)} &&
+                  t == reports{A(4), T(2, 4, 2, 1010, 5, 0), R(4, 1010, 5)},
+              n + "no record free: an order that does not cross is refused; one that fills whole needs none; a remainder rests in "
+                  "the room its trades freed: " + show(s) + " / " + show(t));
+    }
+    if constexpr (Rig::direct) {
+        // No ID table A can hold: a remainder with no room cancelled, its trades kept.
+        config c = small();
+        c.ids = 2;
+        Rig g(c);
+        rest(g, side::buy, 1000, 10), rest(g, side::sell, 1010, 10);
+        const auto r = msg(g, [](auto& e) { e.enter(0, side::buy, 1005, 5, tif::rest); });
+        const auto s = msg(g, [](auto& e) { e.enter(0, side::buy, 1010, 15, tif::rest); });
+        const auto q = g.m.state(0, side::buy);
+        check(r == reports{X(refusal::no_ids)} && s == reports{A(3), T(1, 3, 2, 1010, 10, 0), C(3, 5, cause::no_room)} &&
+                  q.size() == 1 && q[0].price == 1000 && g.m.state(0, side::sell).empty() && g.e.no_room() == 1,
+              n + "a remainder with no room to rest is cancelled (no room), its trades kept: " + show(s));
     }
     check(never_crossed, n + "no book crossed after any message of these tests");
 }

@@ -16,7 +16,7 @@ struct counting {
     void refused(refusal) { ++n; }
     void trade(const trade_report& t) { shares += t.shares; }
     void rested(order_id, price_t, shares_t) { ++n; }
-    void cancelled(order_id, shares_t s) { shares += s; }
+    void cancelled(order_id, shares_t s, cause) { shares += s; }
 };
 
 #define SUBJECTS(tag, Levels, Table)                                                                                                  \

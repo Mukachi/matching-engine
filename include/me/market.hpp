@@ -162,11 +162,10 @@ public:
         return r.shares;
     }
     // Whether an order could rest at `price` now, as `add` would find it
-    // (capacity only: an ID, a record unless `record_freed`, a level); the
-    // first lack, or none.
-    refusal can_rest(instrument_t instrument, side s, price_t price, bool record_freed = false) const {
+    // (capacity only: an ID, a record, a level); the first lack, or none.
+    refusal can_rest(instrument_t instrument, side s, price_t price) const {
         if (!table_.can_take(next_id_)) return refusal::no_ids;
-        if (free_order_ == npos && !record_freed) return refusal::no_orders;
+        if (free_order_ == npos) return refusal::no_orders;
         const book& b = books_[instrument];
         if ((s == side::buy ? b.bids.find(shared_, price) : b.asks.find(shared_, price)) != npos) return refusal::none;
         const bool room = free_level_ != npos && (s == side::buy ? b.bids.can_insert(shared_) : b.asks.can_insert(shared_));

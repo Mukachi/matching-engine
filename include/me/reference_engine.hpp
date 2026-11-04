@@ -28,14 +28,14 @@ public:
     void cancel(order_id id, shares_t shares) {
         const answer a = book_.cancel(id, shares);
         if (!a.ok()) return refuse(a.why);
-        sink_.cancelled(id, shares);
+        sink_.cancelled(id, shares, cause::requested);
     }
 
     void cancel(order_id id) {
         const auto o = book_.find(id);
         if (!o) return refuse(refusal::unknown_id);
         book_.cancel(id);
-        sink_.cancelled(id, o->shares);
+        sink_.cancelled(id, o->shares, cause::requested);
     }
 
     void replace(order_id id, price_t price, shares_t shares) {
@@ -44,7 +44,7 @@ public:
         const auto o = book_.find(id);
         if (!o) return refuse(refusal::unknown_id);
         book_.cancel(id);
-        sink_.cancelled(id, o->shares);
+        sink_.cancelled(id, o->shares, cause::replaced);
         incoming(o->instrument, o->side, price, shares, tif::rest);
     }
 
@@ -79,7 +79,7 @@ private:
             return;
         }
         book_.skip_id();
-        if (shares > 0) sink_.cancelled(id, shares);
+        if (shares > 0) sink_.cancelled(id, shares, cause::ioc);
     }
 
     reference_market& book_;

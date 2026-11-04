@@ -7,9 +7,13 @@
 // book is crossed after any message.
 //
 // Each message's reports go to the sink, in order (D2): accepted (the ID) or
-// refused (nothing changed); the trades; rested, or cancelled. A cancel
-// reports cancelled; a replace reports the old order cancelled, then as a new
-// order. Every accepted order takes the next ID, IOC included (D4).
+// refused (nothing changed); the trades; rested, or cancelled with its cause.
+// A cancel reports cancelled; a replace reports the old order cancelled, then
+// as a new order. Every accepted order takes the next ID, IOC included (D4).
+// Room in the book is needed only by what rests (Shep's decision B, note
+// 003's Review): an order that does not cross and could not rest is refused;
+// one that crosses matches first, and a remainder with no room to rest is
+// cancelled (`no_room`), as an IOC's is.
 // Design: docs/design/003-matching.md
 #pragma once
 
@@ -23,6 +27,13 @@ namespace me {
 
 enum class tif : std::uint8_t { rest, ioc };  // rests until cancelled; immediate or cancel
 
+// Why an order, or what is left of it, was cancelled.
+enum class cause : std::uint8_t { requested, replaced, ioc, no_room };
+inline const char* to_string(cause c) {
+    constexpr const char* n[] = {"requested", "replaced", "ioc", "no room"};
+    return n[static_cast<int>(c)];
+}
+
 struct trade_report {
     std::uint64_t match;  // one engine-wide sequence, from 1
     order_id taker, maker;
@@ -33,7 +44,7 @@ struct trade_report {
 };
 
 // A sink has: accepted(order_id), refused(refusal), trade(const trade_report&),
-// rested(order_id, price_t, shares_t), cancelled(order_id, shares_t).
+// rested(order_id, price_t, shares_t), cancelled(order_id, shares_t, cause).
 template <class Book, class Sink>
 class engine {
 public:
@@ -43,10 +54,14 @@ public:
         if (!valid_size(shares)) return refuse(refusal::size);
         if (!valid_price(price)) return refuse(refusal::price);
         if (instrument >= book_.instruments()) return refuse(refusal::instrument);
-        // An order that may rest is refused before it matches if it could not
-        // rest (matching frees room on the other side only).
-        if (t == tif::rest)
+        if (t == tif::rest && !crosses(instrument, s, price)) {  // nothing to match: it rests, or is refused
             if (const refusal why = book_.can_rest(instrument, s, price); why != refusal::none) return refuse(why);
+            const order_id id = book_.next_id();
+            sink_.accepted(id);
+            book_.add(instrument, s, price, shares);
+            sink_.rested(id, price, shares);
+            return;
+        }
         incoming(instrument, s, price, shares, t);
     }
 
@@ -57,7 +72,7 @@ public:
         if (shares == 0) return refuse(refusal::size);
         if (shares > book_.shares_at(o)) return refuse(refusal::too_many);
         book_.reduce(o, shares);
-        sink_.cancelled(id, shares);
+        sink_.cancelled(id, shares, cause::requested);
     }
 
     void cancel(order_id id) {
@@ -65,7 +80,7 @@ public:
         if (o == npos) return refuse(refusal::unknown_id);
         const shares_t shares = book_.shares_at(o);
         book_.reduce(o, shares);
-        sink_.cancelled(id, shares);
+        sink_.cancelled(id, shares, cause::requested);
     }
 
     // A new order in place of the old, same instrument and side, resting
@@ -82,19 +97,19 @@ public:
         if (!crosses(instrument, s, price)) {
             const answer a = book_.replace(id, price, shares);
             if (!a.ok()) return refuse(a.why);
-            sink_.cancelled(id, old);
+            sink_.cancelled(id, old, cause::replaced);
             sink_.accepted(a.id);
             sink_.rested(a.id, price, shares);
             return;
         }
-        if (const refusal why = book_.can_rest(instrument, s, price, true); why != refusal::none) return refuse(why);
         book_.reduce(o, old);
-        sink_.cancelled(id, old);
+        sink_.cancelled(id, old, cause::replaced);
         incoming(instrument, s, price, shares, tif::rest);
     }
 
     std::uint64_t refused(refusal r) const { return refused_[static_cast<int>(r)]; }
     std::uint64_t matches() const { return match_; }
+    std::uint64_t no_room() const { return no_room_; }
 
 private:
     void refuse(refusal r) {
@@ -110,7 +125,8 @@ private:
         return h != npos && meets(s, price, book_.price_at(h));
     }
 
-    // Checked already: accepted, matched, then rested or cancelled.
+    // Checked already: accepted, matched, then what is left rested if it may
+    // and there is room, or cancelled.
     void incoming(instrument_t instrument, side s, price_t price, shares_t shares, tif t) {
         const order_id id = book_.next_id();
         sink_.accepted(id);
@@ -127,18 +143,21 @@ private:
             left -= q;
             sink_.trade(trade_report{++match_, id, maker, instrument, p, q, maker_left});
         }
-        if (left && t == tif::rest) {
-            book_.add(instrument, s, price, left);  // cannot refuse: checked before matching
+        if (left && t == tif::rest && book_.can_rest(instrument, s, price) == refusal::none) {
+            book_.add(instrument, s, price, left);
             sink_.rested(id, price, left);
             return;
         }
         book_.skip_id();
-        if (left) sink_.cancelled(id, left);
+        if (!left) return;
+        const bool ioc = t == tif::ioc;
+        no_room_ += !ioc;
+        sink_.cancelled(id, left, ioc ? cause::ioc : cause::no_room);
     }
 
     Book& book_;
     Sink& sink_;
-    std::uint64_t match_ = 0;
+    std::uint64_t match_ = 0, no_room_ = 0;
     std::uint64_t refused_[refusals] = {};
 };
 
