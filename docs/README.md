@@ -20,4 +20,4 @@ Only Spec and Review are mandatory. Any section can be one line.
 | [001](design/001-scope.md) | Scope and plan | Agreed |
 | [002](design/002-book.md) | The rules and the book | Measured |
 | [003](design/003-matching.md) | Matching and the engine | Measured |
-| [004](design/004-replay.md) | The replay and the oracle | Draft |
+| [004](design/004-replay.md) | The replay and the oracle | Agreed |

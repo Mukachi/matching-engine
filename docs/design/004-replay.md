@@ -1,6 +1,6 @@
 # 004 — The replay and the oracle
 
-**Status:** Draft · **Updated:** 2026-11-04
+**Status:** Agreed · **Updated:** 2026-11-04
 
 ## Proposal
 
@@ -116,3 +116,4 @@ every crossed book of the day began in a halt or pause (the feed handler's note 
 | Date | Stage | Finding |
 |---|---|---|
 | 2026-11-04 | Draft | Written from note 001 (D3, S2, S3) and the feed handler's notes 002 and 003 (the day's counts: ~10.3 million executions, 8,615 non-printable C, 8,921 trading actions; crossed books begin in halts). Found in writing: entering every execution lets one miss spoil every later comparison (D1); the day's IOCs take IDs, so table A's capacity (M1) is used further, about 233 million of 268 million |
+| 2026-11-04 | Agreed | Approved by Shep, every decision as proposed (option A each): D1 predict, then enter or apply; D2 misses by cause in order; D3 every combination and the reference in lockstep; D4 `replay_oracle` publishes the counts, one run repeated by a second |
