@@ -21,4 +21,4 @@ Only Spec and Review are mandatory. Any section can be one line.
 | [002](design/002-book.md) | The rules and the book | Measured |
 | [003](design/003-matching.md) | Matching and the engine | Measured |
 | [004](design/004-replay.md) | The replay and the oracle | Measured |
-| [005](design/005-measurement.md) | Measurement and the report | Draft |
+| [005](design/005-measurement.md) | Measurement and the report | Agreed |

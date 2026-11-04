@@ -1,6 +1,6 @@
 # 005 — Measurement and the report
 
-**Status:** Draft · **Updated:** 2026-11-04
+**Status:** Agreed · **Updated:** 2026-11-04
 
 ## Proposal
 
@@ -85,3 +85,4 @@ no timed window holds decoding or the reference map, and the engines end in the 
 | Date | Stage | Finding |
 |---|---|---|
 | 2026-11-04 | Draft | Written from note 001 (S5, D5), notes 002 to 004 (the structures, matching, the replay's steps) and lockfree-ipc's open-loop generator (`load.hpp`: any system under test with `send` and `try_receive`, latency from the intended send time), read today |
+| 2026-11-04 | Agreed | Approved by Shep, every decision as proposed (option A each): D1 the default and the reference on the day; D2 each step timed by kind, an untimed pass, memory, end state; D3 the ring under lockfree-ipc's open-loop generator at 1, 2 and 5 million a second beside no ring; D4 three runs each |
