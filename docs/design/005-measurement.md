@@ -75,9 +75,9 @@ no timed window holds decoding or the reference map, and the engines end in the 
 
 ## Tasks
 
-- [ ] The step conversion, shared by both programs
-- [ ] `day_bench` (S1) and `ring_bench` (S2)
-- [ ] `run.py`'s sets and the README's blocks (S3)
+- [x] The step conversion, shared by both programs
+- [x] `day_bench` (S1) and `ring_bench` (S2)
+- [x] `run.py`'s sets and the README's blocks (S3)
 - [ ] Shep's runs; review
 
 ## Review
@@ -86,3 +86,4 @@ no timed window holds decoding or the reference map, and the engines end in the 
 |---|---|---|
 | 2026-11-04 | Draft | Written from note 001 (S5, D5), notes 002 to 004 (the structures, matching, the replay's steps) and lockfree-ipc's open-loop generator (`load.hpp`: any system under test with `send` and `try_receive`, latency from the intended send time), read today |
 | 2026-11-04 | Agreed | Approved by Shep, every decision as proposed (option A each): D1 the default and the reference on the day; D2 each step timed by kind, an untimed pass, memory, end state; D3 the ring under lockfree-ipc's open-loop generator at 1, 2 and 5 million a second beside no ring; D4 three runs each |
+| 2026-11-04 | Agreed (building) | Built: `tools/steps.hpp` (the conversion: note 004's replay on the default book, its end state kept), `day_bench`, `ring_bench` (the engine inside the system under test's `try_receive`; the no-ring baseline waits for each step's intended time on CPU 2), `run.py`'s day and ring sets and the README's blocks. Trials (not bench mode): the day, 417,219,234 steps, both engines ended as the conversion did (8,430,655 trades); the default 9.06 M steps a second, p50 120 ns, p99.9 654, max 35 us, 1,321 MB; the reference 2.56 M, p50 378, max 122 ms; 12 minutes a run. By step, an enter is 151 ns p50 against note 002's add at 105: the engine reads the other side's best order first (does it cross?). The ring: 1 M/s kept, p50 372 ns but p99 12.7 us against no ring's 142 / 492; 2 and 5 M/s refused (producer lateness p99 4.4 us, 809 us). Isolated with a scratch copy at 1 M/s: the ring with the engine's work skipped had p99 11.6 us too, so the tail is the ring and the machine outside bench mode (lockfree-ipc's one-way p99.9 252-282 ns in bench mode), not the engine; to see in bench mode |

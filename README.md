@@ -50,3 +50,11 @@ Matching's synthetic cases, each message timed alone on one CPU; ns, p50 / p99, 
 
 The sample day replayed as order entry: of its 8,555,084 executions, how many the engine matched exactly as Nasdaq did, and every other by its cause. The method: [RESULTS.md](RESULTS.md).
 <!-- /results -->
+
+<!-- results:day-summary -->
+The day per message: not yet measured (design note 005).
+<!-- /results -->
+
+<!-- results:ring-summary -->
+The engine behind the SPSC ring: not yet measured (design note 005).
+<!-- /results -->

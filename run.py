@@ -22,7 +22,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-SETS = ("book", "match", "oracle")
+SETS = ("book", "match", "oracle", "day", "ring")
 BLOCK_OF = {}
 PATH_OF = {}
 
@@ -281,6 +281,105 @@ def oracle_section(lf, note, runs):
             "when only its size falls is ruled out.", ""]
 
 
+# ---------------------------------------------------------------- note 005
+
+
+def day_engines(runs):
+    names = [e["name"] for e in runs[0][1]["day"]["engines"]]
+    for f, d in runs:
+        if [e["name"] for e in d["day"]["engines"]] != names:
+            raise ReportError(f"day: {f}: different engines")
+        for e in d["day"]["engines"]:
+            if not e["as_converted"]:
+                raise ReportError(f"day: {f}: {e['name']}: did not end as the conversion did")
+    return [(n, [d["day"]["engines"][i] for _, d in runs]) for i, n in enumerate(names)]
+
+
+DAYK_HEAD = ["Engine", "M steps/s", "p50", "p99", "p99.9", "max", "Peak memory, MB"]
+
+
+def dayk_rows(lf, runs):
+    rows = []
+    for name, es in day_engines(runs):
+        a = entry(es, "kinds", "kind", "all")
+        rows.append([label(name), lf.rng([e["steps_per_s"] / 1e6 for e in es], lambda v: f"{v:.2f}")]
+                    + [lat(lf, [x[k] for x in a]) for k in ("p50_ns", "p99_ns", "p999_ns", "max_ns")]
+                    + [lf.rng([e["peak_resident_mb"] for e in es], lambda v: f"{v:,.0f}")])
+    return rows
+
+
+def kind_rows(lf, runs):
+    es = day_engines(runs)
+    kinds = [k["kind"] for k in es[0][1][0]["kinds"] if k["kind"] != "all"]
+    rows = []
+    for k in kinds:
+        row = [k, f"{entry(es[0][1], 'kinds', 'kind', k)[0]['count']:,}"]
+        for _, xs in es:
+            v = entry(xs, "kinds", "kind", k)
+            row.append(f"{lat(lf, [x['p50_ns'] for x in v])} / {lat(lf, [x['p99_ns'] for x in v])}")
+        rows.append(row)
+    return ["Step", "Timed"] + [label(n) for n, _ in es], rows
+
+
+def day_section(lf, note, runs):
+    d0 = runs[0][1]["day"]
+    none = lf.rng([d["day"]["none"]["p50_ns"] for _, d in runs])
+    head, rows = kind_rows(lf, runs)
+    return [f"## The day per message (note {note})", "",
+            f"The sample day ({d0['messages']:,} messages) as note 004's {d0['steps']:,} steps, decided once before anything is "
+            f"timed, through the default engine and the reference engine, one after the other on CPU {d0['cpu']}: every step timed "
+            f"alone, unsubtracted (an empty window's p50 is {none} ns), the first {d0['warmup_discarded']:,} discarded; steps a "
+            "second from a second, untimed pass; the most memory each held; each engine ended as the conversion did "
+            f"({d0['trades']:,} trades). {len(runs)} runs; ranges over the runs.", "",
+            lf.table(DAYK_HEAD, dayk_rows(lf, runs)), "",
+            "By step (enter: an add, matched first; execute: an execution entered as an IOC; applied: the steps note 004 "
+            "applies to the book directly). p50 / p99:", "",
+            lf.table(head, rows), ""]
+
+
+def ring_points(runs):
+    """Per rate, over the runs: the ring's results and the no-ring baseline's."""
+    rates = [x["rate_per_s"] for x in runs[0][1]["ring"]["with_ring"]["runs"]]
+    for f, d in runs:
+        if [x["rate_per_s"] for x in d["ring"]["with_ring"]["runs"]] != rates or [x["rate_per_s"] for x in d["ring"]["no_ring"]] != rates:
+            raise ReportError(f"ring: {f}: different rates")
+    return [(rate, [d["ring"]["with_ring"]["runs"][i] for _, d in runs], [d["ring"]["no_ring"][i] for _, d in runs])
+            for i, rate in enumerate(rates)]
+
+
+RING_HEAD = ["Rate", "", "p50", "p99", "p99.9", "max", "Producer lateness p99"]
+
+
+def ring_rows(lf, runs):
+    rows = []
+    for rate, ring, alone in ring_points(runs):
+        r = f"{rate / 1e6:g}M/s"
+        ok = [x for x in ring if x["ok"]]
+        if ok:
+            rows.append([r, f"ring ({len(ok)} of {len(ring)} runs)"]
+                        + [lat(lf, [x["one_way"]["percentiles_ns"][k] for x in ok]) for k in ("p50", "p99", "p999")]
+                        + [lat(lf, [x["one_way"]["max_ns"] for x in ok]), lat(lf, [x["lateness"]["percentiles_ns"]["p99"] for x in ok])])
+        if len(ok) < len(ring):
+            late = [x["lateness"]["percentiles_ns"]["p99"] for x in ring if not x["ok"]]
+            rows.append([r, f"ring refused ({len(ring) - len(ok)} of {len(ring)} runs)", "", "", "", "", lat(lf, late)])
+        rows.append([r, "no ring"] + [lat(lf, [x["latency"]["percentiles_ns"][k] for x in alone]) for k in ("p50", "p99", "p999")]
+                    + [lat(lf, [x["latency"]["max_ns"] for x in alone]), ""])
+    return rows
+
+
+def ring_section(lf, note, runs):
+    g0 = runs[0][1]["ring"]
+    return [f"## The engine behind the SPSC ring (note {note})", "",
+            f"The day's first steps, {g0['measured_per_rate']:,} measured at each rate after lockfree-ipc's warm-up, sent by a "
+            f"producer on CPU {g0['producer_cpu']} through lockfree-ipc's `spsc_ring` (v3, {g0['capacity']:,} slots of "
+            f"{g0['message_bytes']} bytes) to the engine on CPU {g0['engine_cpu']}, under lockfree-ipc's open-loop generator "
+            "unchanged: latency from each message's intended send time to the engine having applied its step. A rate the "
+            "producer cannot keep (lateness p99 above the send interval) is refused by the harness, shown as refused. Beside it, "
+            "the same steps at the same rates on CPU 2 with no ring: each applied at its intended time, timed from then to done. "
+            f"Each rate from a fresh engine. {len(runs)} runs; ranges over the runs that kept the rate. ns:", "",
+            lf.table(RING_HEAD, ring_rows(lf, runs)), ""]
+
+
 def results_md(lf, sets):
     lines = ["# Results", "",
              "Generated by `python run.py report` from the runs listed in `results/published.toml`. "
@@ -295,13 +394,19 @@ def results_md(lf, sets):
         lines += match_section(lf, *sets["match"])
     if "oracle" in sets:
         lines += oracle_section(lf, *sets["oracle"])
+    if "day" in sets:
+        lines += day_section(lf, *sets["day"])
+    if "ring" in sets:
+        lines += ring_section(lf, *sets["ring"])
     return "\n".join(lines).rstrip() + "\n"
 
 
 def readme_blocks(lf, sets):
     blocks = {"book-summary": "The books: not yet measured (design note 002).\n",
               "match-summary": "Matching: not yet measured (design note 003).\n",
-              "oracle-summary": "The day against Nasdaq's executions: not yet run (design note 004).\n"}
+              "oracle-summary": "The day against Nasdaq's executions: not yet run (design note 004).\n",
+              "day-summary": "The day per message: not yet measured (design note 005).\n",
+              "ring-summary": "The engine behind the SPSC ring: not yet measured (design note 005).\n"}
     if "book" in sets:
         runs = sets["book"][1]
         blocks["book-summary"] = (lf.table(DAY_HEAD, day_rows(lf, runs))
@@ -316,6 +421,13 @@ def readme_blocks(lf, sets):
         blocks["oracle-summary"] = (lf.table(ORACLE_HEAD, oracle_rows(o)) + f"\n\nThe sample day replayed as order entry: of its {o['executions']:,} "
                                     "executions, how many the engine matched exactly as Nasdaq did, and every other by its cause. "
                                     "The method: [RESULTS.md](RESULTS.md).\n")
+    if "day" in sets:
+        blocks["day-summary"] = (lf.table(DAYK_HEAD, dayk_rows(lf, sets["day"][1])) + "\n\nThe sample day as order entry, each step "
+                                 "timed alone on one CPU; ns, range over runs. By step and the method: [RESULTS.md](RESULTS.md).\n")
+    if "ring" in sets:
+        blocks["ring-summary"] = (lf.table(RING_HEAD, ring_rows(lf, sets["ring"][1])) + "\n\nThe engine behind lockfree-ipc's SPSC ring "
+                                  "under open-loop load, beside the same steps with no ring; ns, range over runs. The method: "
+                                  "[RESULTS.md](RESULTS.md).\n")
     return blocks
 
 

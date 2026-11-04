@@ -112,6 +112,12 @@ target_compile_definitions(match_bench PRIVATE LFIPC_RESULTS_DIR="${CMAKE_SOURCE
 add_executable(replay_oracle bench/replay_oracle.cpp)
 target_link_libraries(replay_oracle PRIVATE me)
 target_compile_definitions(replay_oracle PRIVATE ME_DATA_DIR="${ME_DATA_DIR}" LFIPC_RESULTS_DIR="${CMAKE_SOURCE_DIR}/results")
+# S1 and S2 of note 005: the day per message, and the engine behind the SPSC ring.
+foreach(b day_bench ring_bench)
+  add_executable(${b} bench/${b}.cpp)
+  target_link_libraries(${b} PRIVATE me)
+  target_compile_definitions(${b} PRIVATE ME_DATA_DIR="${ME_DATA_DIR}" LFIPC_RESULTS_DIR="${CMAKE_SOURCE_DIR}/results")
+endforeach()
 # One number everywhere: RESULTS.md and the README agree with the published JSON.
 add_test(NAME report_check COMMAND Python3::Interpreter -I ${CMAKE_SOURCE_DIR}/run.py report --check
                                   --lockfree-ipc ${lockfree_ipc_SOURCE_DIR})
