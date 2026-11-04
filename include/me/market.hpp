@@ -267,4 +267,8 @@ private:
     std::uint64_t refused_[refusals] = {};
 };
 
+// The default (note 002, S6): levels A, table A, the fastest at every
+// percentile over the day.
+using book = market<levels_sorted, table_direct>;
+
 }  // namespace me

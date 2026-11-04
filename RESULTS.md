@@ -24,6 +24,8 @@ The sample day's displayed book events (423,285,709 messages; 417,219,234 operat
 | levels B (std::map, pooled), table A (direct) | 6.11–6.13 | 136 | 602 | 912–916 | 18.1 µs–18.5 µs | 1,321 |
 | levels B (std::map, pooled), table B (open addressing) | 4.20–4.23 | 229 | 853–854 | 1,243–1,245 | 18.8 µs–21.1 µs | 425 |
 
+The default, `me::book`, is levels A with table A (note 002, S6). Its limit: table A takes one ID for every add and replace in a session, up to its configured capacity (2^28 by default, 1 GB); the sample day used about 223 million (83%), and past the capacity an add is refused (open item M1).
+
 Each operation of the day:
 
 | Book | add p50 | p99 | cancel part p50 | p99 | cancel p50 | p99 | replace p50 | p99 |

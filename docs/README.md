@@ -18,4 +18,4 @@ Only Spec and Review are mandatory. Any section can be one line.
 | Note | Component | Status |
 |---|---|---|
 | [001](design/001-scope.md) | Scope and plan | Agreed |
-| [002](design/002-book.md) | The rules and the book | Agreed |
+| [002](design/002-book.md) | The rules and the book | Measured |

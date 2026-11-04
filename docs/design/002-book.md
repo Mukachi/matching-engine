@@ -1,6 +1,6 @@
 # 002 — The rules and the book
 
-**Status:** Agreed · **Updated:** 2026-11-03
+**Status:** Measured · **Updated:** 2026-11-04
 
 ## Proposal
 
@@ -133,8 +133,10 @@ orders live (the feed handler's note 002: the lookup, not the levels, is what ev
   full every 100,000 operations and at the end: amended in building, Review).
 - S3. Add, cancel and replace make no allocation and no system call (the compiled call graph
   checked, as the repos before it).
-- S4. The sample day's displayed book events applied to each book: every book equal to the
-  reference after every event, and to the feed handler's reference book at the end.
+- S4. The sample day's displayed book events applied to each book: after every event the same
+  answers and every level touched equal to the reference; every 50 million messages and at the
+  end every book in full equal to the reference, and the reference to the feed handler's
+  reference book (amended at review: by the close every book is empty, Review).
 - S5. Per-operation latency (D7's synthetic cases) and the day's per-event latency and throughput,
   each combination of D1 and D2 and the reference, as percentiles over at least three runs via
   `run.py report`; memory stated.
@@ -147,7 +149,7 @@ orders live (the feed handler's note 002: the lookup, not the levels, is what ev
 - [x] The reference book
 - [x] Tests: the rules (S1), random streams (S2), the call graph (S3), the day (S4)
 - [x] Benchmarks and `run.py` (S5)
-- [ ] Shep's runs; review
+- [x] Shep's runs; review
 
 ## Review
 
@@ -159,3 +161,4 @@ orders live (the feed handler's note 002: the lookup, not the levels, is what ev
 | 2026-11-03 | Agreed (building) | Decided by Shep (A): table C built (open addressing, the ID's low bits as the home slot), measured beside A and B. S1 (207 checks over six combinations and the reference), S2 (10 million operations, all six equal to the reference) and S3 (24 subjects) pass with it. S2 as built compares, after every operation, the answer, the order and every level touched, and every book in full each 100,000 (comparing every book after every operation is O(levels) an operation): the Spec amended to say so. Shep asked whether the records come from a pool: they do, all of them (order records, levels, D2 A's arena, D2 B's nodes, the order table), each allocated once at start; the queue's links are fields of the order records, so the list has no nodes of its own; S3 checks nothing else allocates |
 | 2026-11-03 | Agreed (building) | Shep's bench-mode check run (not published): five books within 4% of the trial; table C 0.50 M operations a second (levels A; 0.47 with B), its cancels p99 57 us; synthetic cancel at a level's head 13.3 us, middle 6.7, tail 1.4. Cause: with the ID's low bits as home, consecutive IDs fill consecutive slots, every live order one run without gaps, and the backward-shift deletion scanned to the run's end (an empty slot); erasing the oldest of 10,000 sequential IDs 15 us against B's 241 ns. The tests check results, not cost; C was chosen on B's add and its cancel never timed before the check run. Decided by Shep (A): Robin Hood order in the open-addressing table for B and C both (one algorithm, only the home differs), so a deletion stops at the first entry in its home slot and a missed lookup at the first entry nearer its home than the probe; D1 amended. After: the same erase 72 ns in C, 291 in B. Tests, sanitizers and the whole day rerun; a new check run follows |
 | 2026-11-03 | Agreed (building) | Trial after the Robin Hood change (not bench mode): C's synthetic cancels 23-25 ns (A 21), but the day unchanged, 0.50 M operations a second, add p99 36 us, cancel p99 39 us. A simulation of the table over the day's IDs (first 150 million messages) found the cause: about 1.7 million orders live, many resting for hours; the IDs wrap the 2^23-slot table every 8 million, and with low-bit homes the newest IDs sweep in order through slots still held by old orders, each one passed pushing every later insert one further: longest run ~9,000, put probes p99 16k-32k, erase scan p99.9 32k-65k (B: under 8, longest run 10-11). A 2^25 table only delays it to its first wrap (8,787). Any home that keeps consecutive IDs together sweeps the old orders so; the 10,000-ID probe never wrapped the table. Decided by Shep (A): C dropped from the code, tests and benchmark; A and B measured as first agreed, Robin Hood order kept in B; a blocked hash recorded for later |
+| 2026-11-04 | Measured | Shep's check run at 7976374 clean (A/A 10.90 M operations a second); three runs published (c3f0f45; 20261103T211459Z, 213625Z, 215750Z). Against the Spec: S1, S2 (as amended), S3 met; S4 met as amended (Shep A: the end-of-day comparison was empty, so its wording now says what was built: answers and touched levels after every event, every book in full every 50 million messages and at the end, up to 1,871,048 orders live); S5 met. S6 (Shep A): the default is levels A with table A, `me::book`: on the day 10.89-10.94 M operations a second against 6.10-6.13 for either half alone and 4.20-4.23 for B with B, p50 112 against 136 (levels B) and 189 (table B), p99.9 627-628 against 887-916, every operation type fastest; the cost is memory, 1,321 MB against 425. Levels B wins one synthetic case, an add at a new level far from the best (80-82 against 181 ns: the sorted array's shift), which the day does not show. Open item M1 (Shep A): table A's ID capacity, a limit stated in RESULTS. A/B's maximum 40.6 us in one run of three (others 18.1-21.1 us): no item, changes no conclusion. Runs took 21.5 minutes each (the timed and untimed passes of each book, the conversion); quoted as 9 to Shep |

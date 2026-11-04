@@ -176,6 +176,9 @@ def book_section(lf, note, runs):
             f"{b0['warmup_discarded']:,} discarded; operations a second from a second, untimed pass; the most memory each "
             f"held. {len(runs)} runs; ranges over the runs.", "",
             lf.table(DAY_HEAD, day_rows(lf, runs)), "",
+            "The default, `me::book`, is levels A with table A (note 002, S6). Its limit: table A takes one ID for every add "
+            "and replace in a session, up to its configured capacity (2^28 by default, 1 GB); the sample day used about 223 "
+            "million (83%), and past the capacity an add is refused (open item M1).", "",
             "Each operation of the day:", "",
             lf.table(OP_HEAD, op_rows(lf, runs)), "",
             f"Synthetic cases ({b0['synthetic_book']}), each {b0['synthetic_repetitions']:,} times after "
