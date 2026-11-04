@@ -1,3 +1,7 @@
 # Published result sets: the files run.py report reads, each listed run
 # validated first (lockfree-ipc's note 007 rules). To publish: add the run
 # files here, run `python run.py report`, commit.
+
+[book]
+note = "002"
+runs = ["book-dev-lnx01-20261103T211459Z.json", "book-dev-lnx01-20261103T213625Z.json", "book-dev-lnx01-20261103T215750Z.json"]
