@@ -1,6 +1,6 @@
 # 001 — Scope and plan
 
-**Status:** Agreed · **Updated:** 2026-11-03
+**Status:** Measured · **Updated:** 2026-11-04
 
 ## Proposal
 
@@ -154,8 +154,8 @@ replay and the oracle (D3), 005 measurement and the report.
 
 ## Tasks
 
-- [ ] Shep: empty GitHub repo (private), named per D1
-- [ ] Notes 002–005, one at a time, each agreed before its code
+- [x] Shep: empty GitHub repo (private), named per D1
+- [x] Notes 002–005, one at a time, each agreed before its code
 
 ## Review
 
@@ -167,3 +167,4 @@ replay and the oracle (D3), 005 measurement and the report.
 | 2026-11-03 | Draft | Rule 4703 read (Shep's paste): IOC (4703(a)(1)), cancel at any time (4703(a)), sizes (4703(b)) and price (4703(c)) cited; market orders dropped (4703(c): every order priced, unpriced only in crosses or as a peg, both out), sweeps by marketable limits; fill-or-kill confirmed not offered. Modification's effect on priority still not found (not in 4757 or 4703(a)-(c)) |
 | 2026-11-03 | Draft | Modification: no clause found in the rules read (4703(m), Trade Now, pasted: not it). Sourced from ITCH 5.0 instead, as the feed handler's note 002 applies it: Order Cancel keeps the order's place, Order Replace is a new order at the back of its level whatever changed. Stricter than the first Draft (which kept priority for a size decrease by replace); keeping priority means cancelling part. Cited as the feed spec's description of the book, not a rule |
 | 2026-11-03 | Agreed | Approved by Shep, every decision as proposed (option A each): D1 `matching-engine`; D2 Rule 4757's displayed price-time, 4703's IOC, sizes and price, ITCH 5.0's modification, the rest left out by clause; D3 the sample day as order entry with Nasdaq's executions as a second oracle, plus synthetic sweeps; D4 the order table and the price levels each in two forms, measured; D5 a single-threaded library, lockfree-ipc's SPSC ring in front, measured; D6 no third-party baseline |
+| 2026-11-04 | Measured | Against the Spec (Shep A): S1 met (notes 002 and 003: every rule a test built to break it, planted bugs caught); S2 met (note 004: the whole day replayed, every combination equal to the reference after each of 417,219,234 steps, every book equal to the feed handler's at 9 checkpoints); S3 met (note 004: 98.55% of 8,555,084 executions reproduced, every miss by cause, the unexplained ones open item M3); S4 met (notes 002 and 003: 32 subjects); S5 met (notes 002, 003, 005, three runs each, beside the reference); S6 met (note 002: four combinations, the default levels A with table A). Open items M1 (brought up to date: the replay takes 86% of table A's IDs), M2, M3: limits |
