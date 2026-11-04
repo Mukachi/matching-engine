@@ -45,6 +45,7 @@ public:
         used_ += capacity(k);
         return off;
     }
+    bool can_alloc(int k) const { return k < classes && (free_[k] != npos || used_ + capacity(k) <= size_); }
     void release(std::uint32_t off, int k) {
         mem_[off] = free_[k];
         free_[k] = off;
@@ -71,6 +72,10 @@ struct levels_sorted {
         std::uint32_t find(const shared& s, price_t price) const {
             const std::uint32_t pos = lower(s.arena, price);
             return pos < n_ && price_of(s.arena.at(off_)[pos]) == price ? index_of(s.arena.at(off_)[pos]) : npos;
+        }
+        // Whether an insert would find room (note 003: checked before matching).
+        bool can_insert(const shared& s) const {
+            return off_ == npos ? s.arena.can_alloc(0) : n_ < level_arena::capacity(k_) || s.arena.can_alloc(k_ + 1);
         }
         bool insert(shared& s, price_t price, std::uint32_t i) {
             level_arena& a = s.arena;
@@ -202,6 +207,7 @@ struct levels_map {
             const auto it = m_.find(price);
             return it == m_.end() ? npos : it->second;
         }
+        bool can_insert(const shared&) const { return true; }  // a node per level: the level pool bounds them
         bool insert(shared&, price_t price, std::uint32_t i) {
             m_.emplace(price, i);
             return true;

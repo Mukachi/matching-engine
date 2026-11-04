@@ -132,6 +132,51 @@ public:
         return {refusal::none, nid};
     }
 
+    // ------------------------------------- for the engine (note 003, D1)
+    // An order is held by its record (a handle, npos for none) so a match
+    // touches no order table; each of these is O(1).
+
+    // The head of a side's best level: the order an incoming order meets
+    // first, or npos.
+    std::uint32_t best_head(instrument_t instrument, side s) const {
+        const book& b = books_[instrument];
+        const std::uint32_t l = s == side::buy ? b.bids.best(shared_) : b.asks.best(shared_);
+        return l == npos ? npos : levels_[l].first;
+    }
+    std::uint32_t at(order_id id) const { return table_.get(id); }
+    order_id id_at(std::uint32_t o) const { return orders_[o].id; }
+    price_t price_at(std::uint32_t o) const { return orders_[o].price; }
+    shares_t shares_at(std::uint32_t o) const { return orders_[o].shares; }
+    instrument_t instrument_at(std::uint32_t o) const { return orders_[o].instrument; }
+    side side_at(std::uint32_t o) const { return orders_[o].s; }
+    // Shares off a resting order (1 to all it has), its place kept; at zero
+    // it is removed, and its level if emptied. Its shares left.
+    shares_t reduce(std::uint32_t o, shares_t shares) {
+        order_rec& r = orders_[o];
+        if (shares == r.shares) {
+            remove(o);
+            return 0;
+        }
+        r.shares -= shares;
+        levels_[r.level].shares -= shares;
+        return r.shares;
+    }
+    // Whether an order could rest at `price` now, as `add` would find it
+    // (capacity only: an ID, a record unless `record_freed`, a level); the
+    // first lack, or none.
+    refusal can_rest(instrument_t instrument, side s, price_t price, bool record_freed = false) const {
+        if (!table_.can_take(next_id_)) return refusal::no_ids;
+        if (free_order_ == npos && !record_freed) return refusal::no_orders;
+        const book& b = books_[instrument];
+        if ((s == side::buy ? b.bids.find(shared_, price) : b.asks.find(shared_, price)) != npos) return refusal::none;
+        const bool room = free_level_ != npos && (s == side::buy ? b.bids.can_insert(shared_) : b.asks.can_insert(shared_));
+        return room ? refusal::none : refusal::no_levels;
+    }
+    // The next ID taken by an order that does not rest (D4: an IOC, or one
+    // filled at entry); `add` takes it otherwise.
+    void skip_id() { ++next_id_; }
+    std::size_t instruments() const { return books_.size(); }
+
     // ------------------------------------------------------------ inspection
     std::optional<order_view> find(order_id id) const {
         const std::uint32_t o = table_.get(id);

@@ -1,5 +1,5 @@
-"""S3 of note 002, checked in the compiled code, as the repos before it check theirs.
-Design: docs/design/002-book.md
+"""S3 of notes 002 and 003, checked in the compiled code, as the repos before it check theirs.
+Design: docs/design/002-book.md, docs/design/003-matching.md
 
 Usage: check_hot_path.py <objdump> <hot_path_subject binary>
 
@@ -7,14 +7,17 @@ Each subject is checked with everything it reaches: every function called,
 transitively, may call only memory copies, moves, sets and comparisons, the
 stack protector's abort and libstdc++'s red-black tree rebalancing (pure code:
 no allocation, no system call; D2 B's std::map), never through a pointer, and
-contains no syscall instruction. The subjects: add, cancel part, cancel and
-replace, on every combination of D1 (A, B, C) and D2.
+contains no syscall instruction. The subjects: the book's add, cancel part,
+cancel and replace (note 002), and the engine's enter (matching included),
+cancel part, cancel and replace (note 003), on every combination of note 002's
+D1 and D2.
 """
 import re
 import subprocess
 import sys
 
-SUBJECTS = [f"me_{op}_{c}" for c in ("aa", "ab", "ba", "bb") for op in ("add", "cancel_part", "cancel", "replace")]
+SUBJECTS = [f"me_{op}_{c}" for c in ("aa", "ab", "ba", "bb")
+            for op in ("add", "cancel_part", "cancel", "replace", "enter", "ecancel_part", "ecancel", "ereplace")]
 # __memcpy_chk and the like: with a bounds check (_FORTIFY_SOURCE, Ubuntu's default).
 MEMORY = {"memcpy@plt", "__memcpy_chk@plt", "memmove@plt", "__memmove_chk@plt", "memcmp@plt", "__stack_chk_fail@plt",
           "memset@plt", "__memset_chk@plt", "memchr@plt",
@@ -75,7 +78,7 @@ for subject in SUBJECTS:
             elif t in funcs and t != f:
                 todo.append(t)
     size = sum(len(funcs[f]) for f in seen)
-    check(not bad, f"S3 (note 002) {subject}: {len(seen)} functions, {size} instructions, calls only memory functions, the stack protector and tree rebalancing"
+    check(not bad, f"S3 {subject}: {len(seen)} functions, {size} instructions, calls only memory functions, the stack protector and tree rebalancing"
                    + (f": found {bad[:5]}" if bad else ""))
 
 print("FAILED" if failures else "all passed")

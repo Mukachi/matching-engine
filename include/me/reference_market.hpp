@@ -14,6 +14,7 @@
 #include <map>
 #include <optional>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace me {
@@ -94,6 +95,22 @@ public:
         };
         return s == side::buy ? one(bit->second.bids) : one(bit->second.asks);
     }
+    // For the reference engine (note 003): the order an incoming order meets
+    // first on a side (the front of its best level), and its price.
+    std::optional<std::pair<price_t, queued>> best(instrument_t instrument, side s) const {
+        const auto bit = books_.find(instrument);
+        if (bit == books_.end()) return std::nullopt;
+        if (s == side::buy) {
+            if (bit->second.bids.empty()) return std::nullopt;
+            const auto& [p, q] = *bit->second.bids.begin();
+            return std::pair{p, q.front()};
+        }
+        if (bit->second.asks.empty()) return std::nullopt;
+        const auto& [p, q] = *bit->second.asks.begin();
+        return std::pair{p, q.front()};
+    }
+    void skip_id() { ++next_id_; }
+    std::size_t instruments() const { return instruments_; }
     std::size_t live_orders() const { return where_.size(); }
     std::uint64_t refused(refusal r) const { return refused_[static_cast<int>(r)]; }
     order_id next_id() const { return next_id_; }

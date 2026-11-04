@@ -101,11 +101,11 @@ The same reports to the same sink.
 
 ## Tasks
 
-- [ ] Book primitives (D1): best level, head order, take from the head
-- [ ] The engine: enter (limit, IOC), cancel, replace (D3), reports to a sink (D2), IDs (D4)
-- [ ] The reference engine
-- [ ] Tests: the rules (S1), random streams (S2), the call graph (S3)
-- [ ] Benchmark of D6's cases and `run.py` (S4)
+- [x] Book primitives (D1): best level, head order, take from the head
+- [x] The engine: enter (limit, IOC), cancel, replace (D3), reports to a sink (D2), IDs (D4)
+- [x] The reference engine
+- [x] Tests: the rules (S1), random streams (S2), the call graph (S3)
+- [x] Benchmark of D6's cases and `run.py` (S4)
 - [ ] Shep's runs; review
 
 ## Review
@@ -114,3 +114,4 @@ The same reports to the same sink.
 |---|---|---|
 | 2026-11-04 | Draft | Written from note 001 (D2's rules not yet in a book: decrementation, the resting price, IOC, sweeps) and note 002 (the books, its default `me::book`). Not in either: how a replace that crosses is handled (D3), whether an IOC takes an ID (D4), trading states (D5): each proposed here |
 | 2026-11-04 | Agreed | Approved by Shep, every decision as proposed (option A each): D1 the engine on three O(1) book primitives; D2 reports to a sink the engine is templated on; D3 a crossing replace matched as a new order; D4 every accepted order takes an ID, IOC included; D5 no trading states; D6 matching's synthetic cases published here, the day per message in note 005 |
+| 2026-11-04 | Agreed (building) | Built: book primitives in `market.hpp` (D1: `best_head`, record accessors, `reduce` for any order, `can_rest`, `skip_id`; `can_insert` per levels form), `engine.hpp` (enter, cancel part and whole, replace; reports to the sink, D2), `reference_engine.hpp` on `reference_market` (its `best` added). A decision the Draft did not make, taken as the simplest that keeps D6 of note 002 (a refusal changes nothing): an order that may rest is refused before it matches if it could not rest (no ID, record or level), even when it would fill whole; an IOC needs none (tested). Tests: `engine_test` (S1, 79 checks over the four combinations and the reference; planted bugs caught: trade at the taker's price, a buy not meeting an ask at its limit, an IOC resting), `engine_random_test` (S2: 10 million messages over two seeds, 4.46 million trades, 616,000 messages taking more than one order, a million IOCs, 299,000 crossing replaces, sides to 4,834 levels; a crossing replace not matched caught at message 75), `check_hot_path` (S3: 16 engine subjects added, 32 in all; a sink that allocates caught), `match_bench` and `run.py`'s match set (S4). ASan and UBSan clean. Trial (not bench mode): a match of one order ~40 ns on every book, a sweep ~12-15 ns an order taken with table A, twice that with table B (an erase in the hash per order); the reference's sweeps not linear in orders taken (270 ns an order over 1 level, 330 over 5, 115 over 20; p99 71 us at 20), to see in bench mode |

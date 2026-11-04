@@ -21,3 +21,7 @@ conditions in [RESULTS.md](RESULTS.md).
 
 The sample day's displayed book events as operations, each timed alone on one CPU; ns, range over runs. Each operation, the synthetic cases and the method: [RESULTS.md](RESULTS.md).
 <!-- /results -->
+
+<!-- results:match-summary -->
+Matching: not yet measured (design note 003).
+<!-- /results -->

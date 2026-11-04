@@ -73,7 +73,7 @@ target_link_libraries(me INTERFACE deps Threads::Threads)
 set(ME_DATA_DIR ${CMAKE_SOURCE_DIR}/data CACHE PATH "Where the sample day is")
 
 # Tests: plain executables under CTest. Each one added with its component.
-set(ME_TESTS book_test random_test)
+set(ME_TESTS book_test random_test engine_test engine_random_test)
 foreach(t ${ME_TESTS})
   add_executable(${t} tests/${t}.cpp)
   target_link_libraries(${t} PRIVATE me)
@@ -98,6 +98,10 @@ set_tests_properties(day_test PROPERTIES LABELS data TIMEOUT 14400)
 add_executable(book_bench bench/book_bench.cpp)
 target_link_libraries(book_bench PRIVATE me)
 target_compile_definitions(book_bench PRIVATE ME_DATA_DIR="${ME_DATA_DIR}" LFIPC_RESULTS_DIR="${CMAKE_SOURCE_DIR}/results")
+# S4 of note 003: matching's synthetic cases (D6).
+add_executable(match_bench bench/match_bench.cpp)
+target_link_libraries(match_bench PRIVATE me)
+target_compile_definitions(match_bench PRIVATE LFIPC_RESULTS_DIR="${CMAKE_SOURCE_DIR}/results")
 # One number everywhere: RESULTS.md and the README agree with the published JSON.
 add_test(NAME report_check COMMAND Python3::Interpreter -I ${CMAKE_SOURCE_DIR}/run.py report --check
                                   --lockfree-ipc ${lockfree_ipc_SOURCE_DIR})
