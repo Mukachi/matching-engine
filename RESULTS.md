@@ -11,6 +11,8 @@ HP ProLiant DL380 Gen9, BIOS P89 (08/29/2024); 2 × Intel(R) Xeon(R) CPU E5-2699
 | book (note 002) | 3 | 2026-11-03 21:14 UTC | 7976374 | performance | C1 C1E C3 C6 POLL | on | off | yes | 2-21,46-65 |
 | match (note 003) | 3 | 2026-11-04 11:20 UTC | 5c6f4f1 | performance | C1 C1E C3 C6 POLL | on | off | yes | 2-21,46-65 |
 | oracle (note 004) | 2 | 2026-11-04 12:53 UTC | 39353eb | performance | C1 C1E C3 C6 POLL | on | off | yes | 2-21,46-65 |
+| day (note 005) | 3 | 2026-11-04 14:00 UTC | c0219ab | performance | C1 C1E C3 C6 POLL | on | off | yes | 2-21,46-65 |
+| ring (note 005) | 3 | 2026-11-04 14:12 UTC | c0219ab | performance | C1 C1E C3 C6 POLL | on | off | yes | 2-21,46-65 |
 
 Every run met note 004's bench-mode conditions (each file's `environment.bench_mode`, checked before use) and was built clean; compiler and flags are in each file's `environment.build`. Ranges are min–max over a set's runs.
 
@@ -87,3 +89,36 @@ The sample day (423,285,709 messages) replayed as order entry through the engine
 Of the day's 186,610,705 adds, those that would have crossed the book, rested without matching: not trading 2,180; of its 36,777,372 replaces: none. Printable C executions at a price other than their order's: 130,859 (21,971 reproduced). IDs taken: 231,818,732 of table A's 268,435,456 (86.36%; open item M1).
 
 Executed at another price: a printable C at a price other than its order's (ITCH 5.0 sends C when an order executes at a price other than its display price), so the order was ranked at a price the feed never showed. Earlier orders ahead: the cause is not found (open item M3); every order ahead of one is an add, and a replace keeping its place when only its size falls is ruled out.
+
+## The day per message (note 005)
+
+The sample day (423,285,709 messages) as note 004's 417,219,234 steps, decided once before anything is timed, through the default engine and the reference engine, one after the other on CPU 2: every step timed alone, unsubtracted (an empty window's p50 is 16 ns), the first 1,000,000 discarded; steps a second from a second, untimed pass; the most memory each held; each engine ended as the conversion did (8,430,655 trades). 3 runs; ranges over the runs.
+
+| Engine | M steps/s | p50 | p99 | p99.9 | max | Peak memory, MB |
+|---|---|---|---|---|---|---|
+| reference | 2.48–2.49 | 390 | 1,236–1,243 | 1,785–1,794 | 126.8–127.0 ms | 261 |
+| levels A (sorted array), table A (direct) | 8.74–8.82 | 124–125 | 411–416 | 671–679 | 17.7 µs–19.2 µs | 1,321 |
+
+By step (enter: an add, matched first; execute: an execution entered as an IOC; applied: the steps note 004 applies to the book directly). p50 / p99:
+
+| Step | Timed | reference | levels A (sorted array), table A (direct) |
+|---|---|---|---|
+| enter | 186,200,708 | 322–325 / 1,050–1,077 | 158–159 / 329–333 |
+| cancel part | 4,847,230 | 148 / 443–445 | 74–75 / 232–238 |
+| cancel | 179,886,646 | 446–447 / 1,185–1,188 | 106–107 / 336–340 |
+| replace | 36,729,995 | 702 / 1,665–1,669 | 257–258 / 631–638 |
+| execute | 8,428,046 | 344–347 / 1,194–1,199 | 82–86 / 279–282 |
+| applied | 126,609 | 193 / 851–861 | 59–63 / 250–261 |
+
+## The engine behind the SPSC ring (note 005)
+
+The day's first steps, 50,000,000 measured at each rate after lockfree-ipc's warm-up, sent by a producer on CPU 3 through lockfree-ipc's `spsc_ring` (v3, 1,024 slots of 16 bytes) to the engine on CPU 2, under lockfree-ipc's open-loop generator unchanged: latency from each message's intended send time to the engine having applied its step. A rate the producer cannot keep (lateness p99 above the send interval) is refused by the harness, shown as refused. Beside it, the same steps at the same rates on CPU 2 with no ring: each applied at its intended time, timed from then to done. Each rate from a fresh engine. 3 runs; ranges over the runs that kept the rate. ns:
+
+| Rate |  | p50 | p99 | p99.9 | max | Producer lateness p99 |
+|---|---|---|---|---|---|---|
+| 1M/s | ring (3 of 3 runs) | 278–309 | 637–668 | 873–903 | 18.5 µs–35.0 µs | 41–74 |
+| 1M/s | no ring | 133 | 412–413 | 666–669 | 17.0 µs–18.7 µs |  |
+| 2M/s | ring (3 of 3 runs) | 272–292 | 576–597 | 850–873 | 4.2–18.1 µs | 40 |
+| 2M/s | no ring | 133–134 | 421–423 | 689–690 | 4.1–17.6 µs |  |
+| 5M/s | ring refused (3 of 3 runs) |  |  |  |  | 0.9–1.3 ms |
+| 5M/s | no ring | 233–234 | 40.9 µs–42.8 µs | 560.1 µs–584.4 µs | 703.4 µs–707.9 µs |  |

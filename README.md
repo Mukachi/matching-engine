@@ -52,9 +52,23 @@ The sample day replayed as order entry: of its 8,555,084 executions, how many th
 <!-- /results -->
 
 <!-- results:day-summary -->
-The day per message: not yet measured (design note 005).
+| Engine | M steps/s | p50 | p99 | p99.9 | max | Peak memory, MB |
+|---|---|---|---|---|---|---|
+| reference | 2.48–2.49 | 390 | 1,236–1,243 | 1,785–1,794 | 126.8–127.0 ms | 261 |
+| levels A (sorted array), table A (direct) | 8.74–8.82 | 124–125 | 411–416 | 671–679 | 17.7 µs–19.2 µs | 1,321 |
+
+The sample day as order entry, each step timed alone on one CPU; ns, range over runs. By step and the method: [RESULTS.md](RESULTS.md).
 <!-- /results -->
 
 <!-- results:ring-summary -->
-The engine behind the SPSC ring: not yet measured (design note 005).
+| Rate |  | p50 | p99 | p99.9 | max | Producer lateness p99 |
+|---|---|---|---|---|---|---|
+| 1M/s | ring (3 of 3 runs) | 278–309 | 637–668 | 873–903 | 18.5 µs–35.0 µs | 41–74 |
+| 1M/s | no ring | 133 | 412–413 | 666–669 | 17.0 µs–18.7 µs |  |
+| 2M/s | ring (3 of 3 runs) | 272–292 | 576–597 | 850–873 | 4.2–18.1 µs | 40 |
+| 2M/s | no ring | 133–134 | 421–423 | 689–690 | 4.1–17.6 µs |  |
+| 5M/s | ring refused (3 of 3 runs) |  |  |  |  | 0.9–1.3 ms |
+| 5M/s | no ring | 233–234 | 40.9 µs–42.8 µs | 560.1 µs–584.4 µs | 703.4 µs–707.9 µs |  |
+
+The engine behind lockfree-ipc's SPSC ring under open-loop load, beside the same steps with no ring; ns, range over runs. The method: [RESULTS.md](RESULTS.md).
 <!-- /results -->

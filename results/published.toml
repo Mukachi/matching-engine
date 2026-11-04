@@ -13,3 +13,11 @@ runs = ["match-dev-lnx01-20261104T112033Z.json", "match-dev-lnx01-20261104T11210
 [oracle]
 note = "004"
 runs = ["oracle-dev-lnx01-20261104T125312Z.json", "oracle-dev-lnx01-20261104T125709Z.json"]
+
+[day]
+note = "005"
+runs = ["day-dev-lnx01-20261104T140004Z.json", "day-dev-lnx01-20261104T141628Z.json", "day-dev-lnx01-20261104T143251Z.json"]
+
+[ring]
+note = "005"
+runs = ["ring-dev-lnx01-20261104T141234Z.json", "ring-dev-lnx01-20261104T142857Z.json", "ring-dev-lnx01-20261104T144522Z.json"]
