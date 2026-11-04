@@ -186,6 +186,17 @@ int main() {
     }
     {
         day d;
+        d(add(11, 'B', 1000, 100)), d(add(12, 'B', 1000, 100));
+        const auto [k, r] = d(exec(12, 20, 'C', 'Y', 1002));
+        const auto [k2, r2] = d(exec(12, 20));
+        const auto& c = d.p.counts();
+        check(k == step::execute_apply && c.by_cause[static_cast<int>(miss::other_price)] == 1 && k2 == step::execute_apply &&
+                  c.by_cause[static_cast<int>(miss::earlier_orders)] == 1 && c.c_other_price_by_cause[static_cast<int>(miss::other_price)] == 1,
+              "not first in line: a printable C at another price counted as executed at another price, an E as earlier orders ahead");
+        agree = agree && d.agree;
+    }
+    {
+        day d;
         d(add(11, 'B', 1000, 100));
         d(exec(11, 10, 'C', 'Y', 1003));
         const auto [k, r] = d(cancel(11, 90));

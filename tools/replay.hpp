@@ -43,10 +43,12 @@ std::optional<head> head_of(const market<L, T>& m, instrument_t i, side s) {
 }
 
 // D2's causes, in the order a miss is put in the first that fits.
-enum class miss : std::uint8_t { cross, not_trading, better_price, earlier_orders, unexplained };
-constexpr int misses = 5;
+// `other_price`: a printable C at a price not its order's, so the order was
+// ranked at a price it did not display (Shep's decision A, note 004's Review).
+enum class miss : std::uint8_t { cross, not_trading, better_price, other_price, earlier_orders, unexplained };
+constexpr int misses = 6;
 inline const char* to_string(miss m) {
-    constexpr const char* n[] = {"cross", "not trading", "better price ahead", "earlier orders ahead", "unexplained"};
+    constexpr const char* n[] = {"cross", "not trading", "better price ahead", "executed at another price", "earlier orders ahead", "unexplained"};
     return n[static_cast<int>(m)];
 }
 
@@ -142,6 +144,7 @@ public:
                 if (m.type == 'C' && m.E.printable == 'N') why = miss::cross;
                 else if (!trading(o->instrument)) why = miss::not_trading;
                 else if (h && h->price != o->price) why = miss::better_price;
+                else if (other_price) why = miss::other_price;
                 else if (h) why = miss::earlier_orders;
                 ++c_.by_cause[static_cast<int>(why)];
                 c_.c_other_price_by_cause[static_cast<int>(why)] += other_price;

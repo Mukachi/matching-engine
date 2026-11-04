@@ -274,7 +274,11 @@ def oracle_section(lf, note, runs):
             f"Of the day's {o['adds']:,} adds, those that would have crossed the book, rested without matching: {rested('adds_rested')}; "
             f"of its {o['replaces']:,} replaces: {rested('replaces_rested')}. Printable C executions at a price other than "
             f"their order's: {o['c_other_price']:,} ({o['c_other_price_reproduced']:,} reproduced). IDs taken: "
-            f"{o['ids_taken']:,} of table A's {o['ids_capacity']:,} ({pct(o['ids_taken'], o['ids_capacity'])}; open item M1).", ""]
+            f"{o['ids_taken']:,} of table A's {o['ids_capacity']:,} ({pct(o['ids_taken'], o['ids_capacity'])}; open item M1).", "",
+            "Executed at another price: a printable C at a price other than its order's (ITCH 5.0 sends C when an order executes "
+            "at a price other than its display price), so the order was ranked at a price the feed never showed. Earlier orders "
+            "ahead: the cause is not found (open item M3); every order ahead of one is an add, and a replace keeping its place "
+            "when only its size falls is ruled out.", ""]
 
 
 def results_md(lf, sets):

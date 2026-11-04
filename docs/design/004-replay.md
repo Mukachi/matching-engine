@@ -67,11 +67,15 @@ every crossed book of the day began in a halt or pause (the feed handler's note 
   2. *not trading*: the instrument halted, paused or quoting only (H);
   3. *a better price ahead*: the executed order is not at the best price of its side in our
      book (a crossed or locked book);
-  4. *earlier orders ahead*: at the best price, but not first in time (non-displayed interest
+  4. *executed at another price*: a printable C at a price other than its order's (ITCH 5.0
+     sends C when an order executes at a price other than its display price): the order was
+     ranked at a price it did not display (added by Shep's decision A, Review 2026-11-04);
+  5. *earlier orders ahead*: at the best price, but not first in time (non-displayed interest
      or orders at the head that Nasdaq did not execute; the rule's changes since 2020);
-  5. *unexplained*: each one an open item until explained (note 001, S3).
+  6. *unexplained*: each one an open item until explained (note 001, S3).
 
-  A printable C at a price other than its order's is counted apart as well, reproduced or not.
+  A printable C at a price other than its order's is counted apart as well, reproduced or not, and
+  by cause.
   *Alternative (B):* misses counted, not classified.
 - **D3. The books in lockstep.** *Proposed (A):* every combination of note 002's D1 and D2 and
   the reference engine, given the same messages: the same reports after every message, every
@@ -118,3 +122,4 @@ every crossed book of the day began in a halt or pause (the feed handler's note 
 | 2026-11-04 | Draft | Written from note 001 (D3, S2, S3) and the feed handler's notes 002 and 003 (the day's counts: ~10.3 million executions, 8,615 non-printable C, 8,921 trading actions; crossed books begin in halts). Found in writing: entering every execution lets one miss spoil every later comparison (D1); the day's IOCs take IDs, so table A's capacity (M1) is used further, about 233 million of 268 million |
 | 2026-11-04 | Agreed | Approved by Shep, every decision as proposed (option A each): D1 predict, then enter or apply; D2 misses by cause in order; D3 every combination and the reference in lockstep; D4 `replay_oracle` publishes the counts, one run repeated by a second |
 | 2026-11-04 | Agreed (building) | Built: `tools/replay.hpp` (the mapping, the reference map, D1's prediction, D2's causes; a replace that would cross rests through the book's replace, counted as adds are), `replay_test` (S1, 11 checks), `replay_day_test` (S2: the whole day, 417,219,234 steps, every combination equal to the reference engine after each, every book equal to the reference and to the feed handler's reference book at 9 checkpoints, up to 1,871,048 orders live), `replay_oracle` and `run.py`'s oracle set (refuses runs whose counts differ). Found: the day tests passed on an empty day (the gzip pipe opens before the file is read): both now fail with no messages (note 002's `day_test` too). The Draft's ~10.3 million executions was the feed handler's trade count (non-displayed trades included): the day has 8,555,084 executions of displayed orders. Trial: 8,430,655 reproduced (98.55%), none matched the wrong order; not reproduced: cross 4,726, earlier orders ahead 119,703, no other cause; 2,180 adds would have crossed, all in a halt; IDs 231,818,732 of 268,435,456 (86%). Throwaway diagnostics of the 119,703: 108,888 are printable C at a price other than the order's (83% of the day's 130,855; ITCH 5.0 sends C when an order executes at a price other than its display price, so ranked at a price it did not show); 10,815 are E (0.13% of E), every one of the 152,779 orders ahead of them an add (36.6 million orders born of replaces marked, 132,002 of them same price and fewer shares: none ahead of a miss), so a size-down replace keeping its place is ruled out; cause not found. For Shep: a class for C at another price (D2) |
+| 2026-11-04 | Agreed (building) | Decided by Shep (A): D2 amended, a class *executed at another price* (a printable C at a price not its order's) before *earlier orders ahead*; the 10,815 E executions left there are open item M3, a limit stated beside the counts |
