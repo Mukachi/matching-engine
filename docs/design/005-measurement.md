@@ -1,6 +1,6 @@
 # 005 — Measurement and the report
 
-**Status:** Agreed · **Updated:** 2026-11-04
+**Status:** Measured · **Updated:** 2026-11-04
 
 ## Proposal
 
@@ -78,7 +78,7 @@ no timed window holds decoding or the reference map, and the engines end in the 
 - [x] The step conversion, shared by both programs
 - [x] `day_bench` (S1) and `ring_bench` (S2)
 - [x] `run.py`'s sets and the README's blocks (S3)
-- [ ] Shep's runs; review
+- [x] Shep's runs; review
 
 ## Review
 
@@ -88,3 +88,4 @@ no timed window holds decoding or the reference map, and the engines end in the 
 | 2026-11-04 | Agreed | Approved by Shep, every decision as proposed (option A each): D1 the default and the reference on the day; D2 each step timed by kind, an untimed pass, memory, end state; D3 the ring under lockfree-ipc's open-loop generator at 1, 2 and 5 million a second beside no ring; D4 three runs each |
 | 2026-11-04 | Agreed (building) | Built: `tools/steps.hpp` (the conversion: note 004's replay on the default book, its end state kept), `day_bench`, `ring_bench` (the engine inside the system under test's `try_receive`; the no-ring baseline waits for each step's intended time on CPU 2), `run.py`'s day and ring sets and the README's blocks. Trials (not bench mode): the day, 417,219,234 steps, both engines ended as the conversion did (8,430,655 trades); the default 9.06 M steps a second, p50 120 ns, p99.9 654, max 35 us, 1,321 MB; the reference 2.56 M, p50 378, max 122 ms; 12 minutes a run. By step, an enter is 151 ns p50 against note 002's add at 105: the engine reads the other side's best order first (does it cross?). The ring: 1 M/s kept, p50 372 ns but p99 12.7 us against no ring's 142 / 492; 2 and 5 M/s refused (producer lateness p99 4.4 us, 809 us). Isolated with a scratch copy at 1 M/s: the ring with the engine's work skipped had p99 11.6 us too, so the tail is the ring and the machine outside bench mode (lockfree-ipc's one-way p99.9 252-282 ns in bench mode), not the engine; to see in bench mode |
 | 2026-11-04 | Agreed (building) | Ring check run at c0219ab (bench mode) clean: the trial's tail was the machine outside bench mode. Published: day (20261104T140004Z, 141628Z, 143251Z) and ring (141234Z, 142857Z, 144522Z), all at c0219ab. The day: default 8.74-8.82 M steps a second, p50 124-125 ns, p99.9 671-679, max 17.7-19.2 us, 1,321 MB; reference 2.48-2.49 M, p50 390, max 127 ms; both ended as the conversion did. By step (default): enter 158-159 ns p50 (note 002's add 105: the crossing check), execute 82-86, cancel 106-107, replace 257-258. The ring: 1 M/s p50 278-309 ns against no ring's 133 (+145-176), p99.9 873-903 against 666-669; 2 M/s 272-292 against 133-134, p99.9 850-873 against 689-690; producer lateness p99 40-74 ns; 5 M/s refused every run (lateness p99 0.9-1.3 ms), and with no ring its p99.9 is 560-584 us: the engine does not keep 5 M/s over the day's first 55 million steps (the open's), with or without the ring |
+| 2026-11-04 | Measured | Against the Spec (Shep A): S1 met (the day per step kind, throughput, memory, both engines as converted), S2 met (1 and 2 M/s kept every run beside no ring, 5 M/s refused every run and published as refused), S3 met (`run.py`, the README's generated blocks). No open item raised |
