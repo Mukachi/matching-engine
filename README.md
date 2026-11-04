@@ -38,5 +38,15 @@ Matching's synthetic cases, each message timed alone on one CPU; ns, p50 / p99, 
 <!-- /results -->
 
 <!-- results:oracle-summary -->
-The day against Nasdaq's executions: not yet run (design note 004).
+| Executions of the day | Count | Share |
+|---|---|---|
+| reproduced (the order Nasdaq executed met first, for its shares) | 8,430,655 | 98.55% |
+| not reproduced: cross | 4,726 | 0.06% |
+| not reproduced: not trading | 0 | 0.00% |
+| not reproduced: better price ahead | 0 | 0.00% |
+| not reproduced: executed at another price | 108,888 | 1.27% |
+| not reproduced: earlier orders ahead | 10,815 | 0.13% |
+| not reproduced: unexplained | 0 | 0.00% |
+
+The sample day replayed as order entry: of its 8,555,084 executions, how many the engine matched exactly as Nasdaq did, and every other by its cause. The method: [RESULTS.md](RESULTS.md).
 <!-- /results -->

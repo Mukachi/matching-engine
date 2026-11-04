@@ -9,3 +9,7 @@ runs = ["book-dev-lnx01-20261103T211459Z.json", "book-dev-lnx01-20261103T213625Z
 [match]
 note = "003"
 runs = ["match-dev-lnx01-20261104T112033Z.json", "match-dev-lnx01-20261104T112105Z.json", "match-dev-lnx01-20261104T112137Z.json"]
+
+[oracle]
+note = "004"
+runs = ["oracle-dev-lnx01-20261104T125312Z.json", "oracle-dev-lnx01-20261104T125709Z.json"]

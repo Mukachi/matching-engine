@@ -10,6 +10,7 @@ HP ProLiant DL380 Gen9, BIOS P89 (08/29/2024); 2 × Intel(R) Xeon(R) CPU E5-2699
 |---|---|---|---|---|---|---|---|---|---|
 | book (note 002) | 3 | 2026-11-03 21:14 UTC | 7976374 | performance | C1 C1E C3 C6 POLL | on | off | yes | 2-21,46-65 |
 | match (note 003) | 3 | 2026-11-04 11:20 UTC | 5c6f4f1 | performance | C1 C1E C3 C6 POLL | on | off | yes | 2-21,46-65 |
+| oracle (note 004) | 2 | 2026-11-04 12:53 UTC | 39353eb | performance | C1 C1E C3 C6 POLL | on | off | yes | 2-21,46-65 |
 
 Every run met note 004's bench-mode conditions (each file's `environment.bench_mode`, checked before use) and was built clean; compiler and flags are in each file's `environment.build`. Ranges are min–max over a set's runs.
 
@@ -68,3 +69,21 @@ The engine over each book and the reference engine, synthetic cases on one instr
 | replace that crosses | 1,000,000 | 174–176 / 180–191 | 42–43 / 47 | 49–50 / 364–369 | 40 / 41–52 | 46–51 / 367–376 |
 
 A sweep's p50 moves by up to about 10% a book with the code's layout between builds, in either direction: the change to room for what rests (note 003's Review) left the sweep's work unchanged and moved levels A with table A up ~10% and levels B with table A down ~11%. A difference in sweeps under ~10% is not a design difference (open item M2).
+
+## The day against Nasdaq's executions (note 004)
+
+The sample day (423,285,709 messages) replayed as order entry through the engine on levels A with table A: each execution (E, C) entered as an immediate-or-cancel order on the other side at the executed order's price, for its shares, when the executed order is the first that order would meet; otherwise Nasdaq's outcome applied to the book and the execution counted by its cause, so the book stays Nasdaq's after every message. 8,555,084 executions; counts from 2 runs, identical:
+
+| Executions of the day | Count | Share |
+|---|---|---|
+| reproduced (the order Nasdaq executed met first, for its shares) | 8,430,655 | 98.55% |
+| not reproduced: cross | 4,726 | 0.06% |
+| not reproduced: not trading | 0 | 0.00% |
+| not reproduced: better price ahead | 0 | 0.00% |
+| not reproduced: executed at another price | 108,888 | 1.27% |
+| not reproduced: earlier orders ahead | 10,815 | 0.13% |
+| not reproduced: unexplained | 0 | 0.00% |
+
+Of the day's 186,610,705 adds, those that would have crossed the book, rested without matching: not trading 2,180; of its 36,777,372 replaces: none. Printable C executions at a price other than their order's: 130,859 (21,971 reproduced). IDs taken: 231,818,732 of table A's 268,435,456 (86.36%; open item M1).
+
+Executed at another price: a printable C at a price other than its order's (ITCH 5.0 sends C when an order executes at a price other than its display price), so the order was ranked at a price the feed never showed. Earlier orders ahead: the cause is not found (open item M3); every order ahead of one is an add, and a replace keeping its place when only its size falls is ruled out.
