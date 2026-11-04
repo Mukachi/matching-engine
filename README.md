@@ -36,3 +36,7 @@ The sample day's displayed book events as operations, each timed alone on one CP
 
 Matching's synthetic cases, each message timed alone on one CPU; ns, p50 / p99, range over runs. The method: [RESULTS.md](RESULTS.md).
 <!-- /results -->
+
+<!-- results:oracle-summary -->
+The day against Nasdaq's executions: not yet run (design note 004).
+<!-- /results -->

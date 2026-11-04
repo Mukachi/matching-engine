@@ -209,6 +209,7 @@ int main(int argc, char** argv) {
     std::printf("      refused:%s; events for an order not entered (refused before, or unknown): %llu\n", why.empty() ? " none" : why.c_str(),
                 static_cast<unsigned long long>(skipped));
     compare_all();
+    check(f.sequence() > 0, "the sample day read (" + std::to_string(f.sequence()) + " messages)");
     check(full, "S4: every book in full equal to the reference at " + std::to_string(checkpoints) +
                     " checkpoints (every 50 million messages and the end; up to " + std::to_string(most_live) +
                     " orders live; " + std::to_string(compared) + " instrument books compared)");
