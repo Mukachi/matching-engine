@@ -1,6 +1,6 @@
 # 003 — Matching and the engine
 
-**Status:** Draft · **Updated:** 2026-11-04
+**Status:** Agreed · **Updated:** 2026-11-04
 
 ## Proposal
 
@@ -113,3 +113,4 @@ The same reports to the same sink.
 | Date | Stage | Finding |
 |---|---|---|
 | 2026-11-04 | Draft | Written from note 001 (D2's rules not yet in a book: decrementation, the resting price, IOC, sweeps) and note 002 (the books, its default `me::book`). Not in either: how a replace that crosses is handled (D3), whether an IOC takes an ID (D4), trading states (D5): each proposed here |
+| 2026-11-04 | Agreed | Approved by Shep, every decision as proposed (option A each): D1 the engine on three O(1) book primitives; D2 reports to a sink the engine is templated on; D3 a crossing replace matched as a new order; D4 every accepted order takes an ID, IOC included; D5 no trading states; D6 matching's synthetic cases published here, the day per message in note 005 |
