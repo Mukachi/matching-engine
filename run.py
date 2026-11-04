@@ -225,7 +225,11 @@ def match_section(lf, note, runs):
             "of its repetitions, each followed by untimed messages that put the book back. A sweep takes whole levels and rests "
             "nothing; a replace that crosses fills the best ask's head whole. The book stays in cache: each message's cost at "
             f"its best. {len(runs)} runs; ranges over the runs. p50 / p99:", "",
-            lf.table(head, rows), ""]
+            lf.table(head, rows), "",
+            "A sweep's p50 moves by up to about 10% a book with the code's layout between builds, in either direction: the "
+            "change to room for what rests (note 003's Review) left the sweep's work unchanged and moved levels A with table A "
+            "up ~10% and levels B with table A down ~11%. A difference in sweeps under ~10% is not a design difference (open "
+            "item M2).", ""]
 
 
 def results_md(lf, sets):

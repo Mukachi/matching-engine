@@ -9,6 +9,7 @@ HP ProLiant DL380 Gen9, BIOS P89 (08/29/2024); 2 × Intel(R) Xeon(R) CPU E5-2699
 | Set | Runs | First run | Commit | Governor | Idle states enabled | Turbo | NUMA balancing | Boot isolation | Reserved CPUs |
 |---|---|---|---|---|---|---|---|---|---|
 | book (note 002) | 3 | 2026-11-03 21:14 UTC | 7976374 | performance | C1 C1E C3 C6 POLL | on | off | yes | 2-21,46-65 |
+| match (note 003) | 3 | 2026-11-04 11:20 UTC | 5c6f4f1 | performance | C1 C1E C3 C6 POLL | on | off | yes | 2-21,46-65 |
 
 Every run met note 004's bench-mode conditions (each file's `environment.bench_mode`, checked before use) and was built clean; compiler and flags are in each file's `environment.build`. Ranges are min–max over a set's runs.
 
@@ -50,3 +51,20 @@ Synthetic cases (one instrument, 1,000 levels a side of 10 orders, a cent apart)
 | replace in its level | 225–227 / 356–359 | 67–68 / 113–116 | 213–219 / 532–536 | 72 / 177–183 | 218–219 / 537–538 |
 | replace to another level | 219–220 / 328–334 | 69 / 114 | 218–219 / 561 | 74 / 149–155 | 225–226 / 565 |
 | cancel part to nothing | 137–138 / 250–257 | 22–23 / 44–46 | 68–69 / 281–289 | 23 / 44–45 | 69 / 309–320 |
+
+## Matching (note 003)
+
+The engine over each book and the reference engine, synthetic cases on one instrument, 1,000 levels a side of 10 orders of 100 shares, a cent apart, one engine after another on CPU 2: each message timed alone, unsubtracted (an empty window's p50 is 16 ns), after a warm-up of 1% of its repetitions, each followed by untimed messages that put the book back. A sweep takes whole levels and rests nothing; a replace that crosses fills the best ask's head whole. The book stays in cache: each message's cost at its best. 3 runs; ranges over the runs. p50 / p99:
+
+| Case | Messages timed | reference | levels A (sorted array), table A (direct) | levels A (sorted array), table B (open addressing) | levels B (std::map, pooled), table A (direct) | levels B (std::map, pooled), table B (open addressing) |
+|---|---|---|---|---|---|---|
+| add that does not match | 1,000,000 | 95–96 / 113–114 | 59–61 / 60–70 | 159–162 / 492–493 | 55–56 / 56 | 155–158 / 477–491 |
+| match one order, filled whole | 1,000,000 | 100–101 / 106–108 | 36 / 37 | 36–37 / 186–193 | 35 / 35–37 | 36–39 / 164–187 |
+| match one order, in part | 1,000,000 | 52–53 / 54–55 | 34 / 35 | 33 / 34–35 | 27–32 / 33–35 | 28–35 / 33–35 |
+| sweep 1 level (10 orders) | 100,000 | 950–952 / 973–982 | 159–160 / 166–177 | 298–299 / 694–708 | 138–139 / 146–164 | 290–299 / 689–702 |
+| sweep 5 levels (50 orders) | 100,000 | 5,803–5,846 / 5,934–5,970 | 699–842 / 729–868 | 1,510–1,567 / 2,238–2,304 | 652–667 / 703–790 | 1,629–1,656 / 2,322–2,377 |
+| sweep 20 levels (200 orders) | 100,000 | 25.0 µs / 25.3 µs–25.6 µs | 2,752–2,865 / 2,876–2,992 | 6,349–6,494 / 7,528–7,688 | 2,621–2,632 / 2,723–2,843 | 6,873–6,931 / 7,994–8,052 |
+| IOC that meets nothing | 1,000,000 | 35–36 / 35–36 | 27 / 32 | 25 / 29–30 | 25 / 28–29 | 25–26 / 29–31 |
+| replace that crosses | 1,000,000 | 174–176 / 180–191 | 42–43 / 47 | 49–50 / 364–369 | 40 / 41–52 | 46–51 / 367–376 |
+
+A sweep's p50 moves by up to about 10% a book with the code's layout between builds, in either direction: the change to room for what rests (note 003's Review) left the sweep's work unchanged and moved levels A with table A up ~10% and levels B with table A down ~11%. A difference in sweeps under ~10% is not a design difference (open item M2).
